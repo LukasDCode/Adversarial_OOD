@@ -1,6 +1,6 @@
 # ignore the data directory, but not the pickle file
 data/
-!data/cifar10_test_relative_softmax_averages.pickle
+!*/data/cifar10_test_relative_softmax_averages.pickle
 
 # ignore directories
 .idea/
