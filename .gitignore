@@ -1,0 +1,12 @@
+# ignore the data directory, but not the pickle file
+data/
+!data/cifar10_test_relative_softmax_averages.pickle
+
+# ignore directories
+.idea/
+__pycache__/
+utils/__pycache__/
+visualization/__pycache__/
+
+# ignore files
+test.py
