@@ -10,6 +10,7 @@ import torch
 from torch.nn import functional as F
 torch.set_grad_enabled(False)
 
+#from .vit.src.data_loaders import create_dataloaders
 from vit.src.data_loaders import create_dataloaders
 from perturb_images import calculate_softmax_score
 from utils.dotdict import dotdict
@@ -28,7 +29,8 @@ if dataset == 'cifar10':
     num_classes = 10
     ckpt = '/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth'
     classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-    
+
+    # home/wiss/ and contrastive_ood do not exist anymore
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar10png/test/truck/0071.jpg'
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar10png/test/ship/0090.jpg'
     img_path = '/home/wiss/koner/contrastive_ood/data/cifar10png/test/bird/0295.jpg'
@@ -62,7 +64,8 @@ elif dataset == 'cifar100':
             "maple", "oak", "palm", "pine", "willow",
             "bicycle", "bus", "motorcycle", "pickup truck", "train",
             "lawn-mower", "rocket", "streetcar", "tank", "tractor"]
-    
+
+    # home/wiss/ and contrastive_ood do not exist anymore
     img_path = '/home/wiss/koner/contrastive_ood/data/cifar100png/test/vehicles_1/pickup_truck/0004.png'
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar100png/test/flowers/tulip/0097.png'
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar100png/test/people/woman/0027.png'
@@ -119,7 +122,7 @@ print('Model loaded....')
 
 
 dataloaders_config = {
-    "data_dir": "/home/wiss/koner/Lukas/adversarial_ood/data/cifar10/", # "/home/koner/adversarial_ood/data/cifar-100-python/"
+    "data_dir": "/home-local/koner/lukas/Adversarial_OOD/data/cifar10/", # "/home/koner/adversarial_ood/data/cifar-100-python/"
     "image_size": 224,
     "batch_size": 16,
     "num_workers": 0,
@@ -270,7 +273,7 @@ print()
 
 # save pickle into file for imagenet
 # the 10 classes are alphabetically sorted, like in the directory
-pickle_file_path = '/home/wiss/koner/Lukas/adversarial_ood/data/'
+pickle_file_path = '/home-local/koner/lukas/Adversarial_OOD/data/'
 pickle_file_name_abs = 'cifar10_test_absolute_softmax_averages.pickle'
 pickle_file_name_rel = 'cifar10_test_relative_softmax_averages.pickle'
 

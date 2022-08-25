@@ -79,7 +79,7 @@ def perform_MPGD_attack(args):
 
 
     dataloaders_config = {
-        "data_dir": "/home/wiss/koner/Lukas/adversarial_ood/data/cifar-100-python/", # "/home/koner/adversarial_ood/data/cifar-100-python/"
+        "data_dir": "/home/wiss/koner/lukas/Adversarial_OOD/data/cifar-100-python/", # "/home/koner/adversarial_ood/data/cifar-100-python/"
         "image_size": IMAGE_SIZE, #224
         "batch_size": args.batchsize, #16
         "num_workers": args.workers, #0

@@ -65,7 +65,8 @@ if dataset == 'cifar10':
     num_classes = 10
     ckpt = '/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth'
     classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-    
+
+    # home/wiss/ and contrastive_ood do not exist anymore
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar10png/test/truck/0071.jpg'
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar10png/test/ship/0090.jpg'
     img_path = '/home/wiss/koner/contrastive_ood/data/cifar10png/test/bird/0295.jpg'
@@ -99,7 +100,8 @@ elif dataset == 'cifar100':
             "maple", "oak", "palm", "pine", "willow",
             "bicycle", "bus", "motorcycle", "pickup truck", "train",
             "lawn-mower", "rocket", "streetcar", "tank", "tractor"]
-    
+
+    # home/wiss/ and contrastive_ood do not exist anymore
     img_path = '/home/wiss/koner/contrastive_ood/data/cifar100png/test/vehicles_1/pickup_truck/0004.png'
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar100png/test/flowers/tulip/0097.png'
     #img_path = '/home/wiss/koner/contrastive_ood/data/cifar100png/test/people/woman/0027.png'
@@ -340,7 +342,7 @@ def iterate_over_entire_dataset(directory):
 
 
 # save pickle into file for imagenet
-pickle_file_path = '/home/koner/adversarial_ood/data/'
+pickle_file_path = '/home-local/koner/lukas/Adversarial_OOD/data/'
 pickle_file_name = 'cifar10_train_centroids.pickle'
 #with open(pickle_file_path + pickle_file_name, 'wb') as handle:
 #    pickle.dump(mean_of_train_classes, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -361,7 +363,7 @@ pickle_file_name = 'cifar10_train_centroids.pickle'
 
 
 # save pickle into file for imagenet
-pickle_file_path = '/home/koner/adversarial_ood/data/'
+pickle_file_path = '/home-local/koner/lukas/Adversarial_OOD/data/'
 pickle_file_name_test = 'cifar10_test_centroids.pickle'
 #with open(pickle_file_path + pickle_file_name_test, 'wb') as handle:
 #    pickle.dump(mean_of_test_classes, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -381,7 +383,7 @@ mean_of_test_classes = pickle_content
 # In[17]:
 
 
-ood_data_path = '/home/koner/adversarial_ood/data/random_ood_images/'
+ood_data_path = '/home-local/koner/lukas/Adversarial_OOD/data/random_ood_images/'
 ood_file_name = "chair1.jpg"
 
 ood_output, softmax_prediction = get_model_output_from_single_image(ood_data_path + ood_file_name)
@@ -427,7 +429,7 @@ for index in range(len(mean_of_test_classes)):
 
 
 # image of a ship, class with index 8 (0 indicated) --> smallest distance and biggest cosine similarity
-id_output, _ = get_model_output_from_single_image('/home/koner/contrastive_ood/data/cifar10png/test/ship/0090.jpg')
+id_output, _ = get_model_output_from_single_image('/home-local/koner/lukas/contrastive_ood/data/cifar10png/test/ship/0090.jpg') # contrastive_ood doesnt exist anymore :(
 for index in range(len(mean_of_test_classes)):
     euclidean_dist = torch.cdist((mean_of_test_classes[index]).to(device=device), id_output)**2
     print("Distance         :  ", euclidean_dist.item())
@@ -467,7 +469,7 @@ for index in range(len(mean_of_test_classes)):
 # In[21]:
 
 
-cifar100_path = "/home/koner/adversarial_ood/data/cifar-100-python/"
+cifar100_path = "/home-local/koner/lukas/Adversarial_OOD/data/cifar-100-python/"
 #function to read files present in the Python version of the dataset
 def unpickle(file):
     with open(cifar100_path + file, 'rb') as fo:
@@ -650,7 +652,7 @@ from utils.dotdict import dotdict
 
 
 dataloaders_config = {
-    "data_dir": cifar100_path, # "/home/koner/adversarial_ood/data/cifar-100-python/"
+    "data_dir": cifar100_path, # "/home-local/koner/lukas/Adversarial_OOD/data/cifar-100-python/"
     "image_size": 224,
     "batch_size": 16,
     "num_workers": 0,
