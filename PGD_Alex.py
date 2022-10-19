@@ -341,7 +341,7 @@ class MonotonePGD(Restart_attack):
             pert = project_perturbation(pert, self.eps, self.norm) # stolen from Alex
 
 
-        #TO<DO fix the datatype here !!!
+        #TODO fix the datatype here !!!
         prev_loss = 1e13 * x.new_ones(x.shape[0], dtype=torch.float)
 
         prev_pert = pert.clone().detach()
@@ -476,12 +476,12 @@ class MonotonePGD_Lukas():
         This function includes the perturb of the RestartAttack and also the perturb_inner of the MonotonePGD.
         """
 
-        #perturb --> outer minimization
+        #perturb --> outer minimization of loss (take samples with the least loss)
         highest_loss_batch = x.new_empty((1 + self.restarts,) + x.shape)
         highest_loss_indices = x.new_empty((1 + self.restarts, x.shape[0]))
 
         for restart in range(self.restarts +1):
-            #perturb_inner --> inner maximization
+            #perturb_inner --> inner maximization of loss
             loss_function = lambda data, data_out: self.loss(data, data_out, x, y, reduction="none")
             lr = self.stepsize * x.new_ones(x.shape[0])
 
