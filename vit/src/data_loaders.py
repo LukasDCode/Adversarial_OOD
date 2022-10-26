@@ -269,7 +269,7 @@ class SVHNDataLoader(DataLoader):
 
 
 def create_dataloaders(config,no_train_aug=False, out_dataset=False):
-    dataset =  config.out_dataset if out_dataset else config.dataset
+    dataset = config.out_dataset if out_dataset else config.dataset
     if config.model!='vit':
         config.deit=False
     elif no_train_aug:
