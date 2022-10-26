@@ -7,6 +7,7 @@ data/
 __pycache__/
 utils/__pycache__/
 visualization/__pycache__/
+runs/
 
 # ignore files
 test.py
