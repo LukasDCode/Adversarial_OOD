@@ -8,6 +8,10 @@ __pycache__/
 utils/__pycache__/
 visualization/__pycache__/
 runs/
+utils/models/saved_models/
 
 # ignore files
 test.py
+console_output
+model_20221026_143350_0
+
