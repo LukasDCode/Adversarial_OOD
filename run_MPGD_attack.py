@@ -12,6 +12,7 @@ from vit.src.data_loaders import create_dataloaders
 from perturb_images import perturb_image_batch, perturb_single_image
 from utils.dotdict import dotdict
 
+# Cifar 100 ViT Model = vit_224SimCLR_cifar100_bs512_lr0.01_wd1e-05_temp_0.5_210315_140833/checkpoints/ckpt_epoch_100.pth
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run the monotone PGD attack on a batch of images, default is with ViT and the MPGD of Alex, where cifar10 is ID and cifar100 is OOD')

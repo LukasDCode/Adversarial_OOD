@@ -7,7 +7,7 @@ import torch.optim as optim
 
 #CHANGE
 from vit.src.model import VisionTransformer as ViT
-from utils.normalize_image_data import normalize_image_data
+from utils.normalize_image_data import normalize_cifar100_image_data
 
 
 def create_early_stopping_mask(out, y, conf_threshold, targeted):
@@ -367,7 +367,7 @@ class MonotonePGD(Restart_attack):
                 #CHANGE
                 # only the ViT model has the property "not_contrastive_acc" (gradient=None issue)
                 if type(self.model) == type(ViT()):
-                    normalized_data = normalize_image_data(data.clone())
+                    normalized_data = normalize_cifar100_image_data(data.clone())
                     out = self.model(normalized_data, not_contrastive_acc=True)
                 else:
                     out = self.model(data)

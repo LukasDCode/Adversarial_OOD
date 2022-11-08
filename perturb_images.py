@@ -4,7 +4,7 @@ from vit.src.model import VisionTransformer as ViT
 from visualization.save_images import save_img_batch_as_jpgs, save_img_as_jpg
 from visualization.visualize_embeddings import visualize_attn_embeddings, visualize_batch_attn_embeddings
 from utils.cifar100_labels import cifar100_labels
-from utils.normalize_image_data import normalize_image_data
+from utils.normalize_image_data import normalize_cifar100_image_data
 from utils.image_modification_path import print_single_image_modification_path, print_batch_image_modification_path
 from utils.calculate_softmax_score import calculate_softmax_score
 
@@ -25,7 +25,7 @@ def perturb_image_batch(model, attack, dataloader, device, visualization=False):
 
         image_batch, label_batch = image_batch.to(device), label_batch.to(device)
         with torch.no_grad():
-            normalized_image_batch = normalize_image_data(image_batch.clone().detach())
+            normalized_image_batch = normalize_cifar100_image_data(image_batch.clone().detach())
             if type(model) == type(ViT()):
                 softmax_prediction = model(normalized_image_batch, feat_cls=False) # feat_cls=True also returns embeddings
             else:
@@ -35,7 +35,7 @@ def perturb_image_batch(model, attack, dataloader, device, visualization=False):
 
         # calls the perturb() of RestartAttack --> which calls perturb_inner() of MonotonePGD
         perturbed_image_batch, best_softmax_list, best_idx = attack(image_batch.clone(), label_batch)  # size = [16, 3, 224, 224]
-        normalized_perturbed_image_batch = normalize_image_data(perturbed_image_batch.clone().detach())
+        normalized_perturbed_image_batch = normalize_cifar100_image_data(perturbed_image_batch.clone().detach())
 
         print_batch_image_modification_path(best_softmax_list, best_idx, model.classifier.out_features, label_batch)
 
@@ -68,7 +68,7 @@ def perturb_single_image(model, attack, dataloader, device, visualization=False)
             for index, image in enumerate(image_batch): # image [3, 224, 224]
                 label = cifar100_labels[label_batch[index].item()] #string format of label ex: "mountain"
 
-                normalized_image = normalize_image_data(image.clone().detach().unsqueeze(0)) # [-2.4;2.7]
+                normalized_image = normalize_cifar100_image_data(image.clone().detach().unsqueeze(0)) # [-2.4;2.7]
                 if visualization:
                     save_img_as_jpg(image.clone().detach(), label_batch[index], batch_idx, perturbed=False)
                     visualize_attn_embeddings(model, image.clone().detach(), label, "", pert=False)
@@ -82,7 +82,7 @@ def perturb_single_image(model, attack, dataloader, device, visualization=False)
                 clean_out.extend(calculate_softmax_score(softmax_prediction, model.classifier.out_features))
                 # calls the perturb() of RestartAttack --> calls perturb_inner() of MonotonePGD
                 perturbed_image, best_softmax_list, best_idx = attack(image.clone().unsqueeze(0), label_batch[index])  # size = [1, 3, 224, 224]
-                normalized_perturbed_image = normalize_image_data(perturbed_image.clone().detach())
+                normalized_perturbed_image = normalize_cifar100_image_data(perturbed_image.clone().detach())
 
                 # some debugging info, can be deleted #DELETE TODO
                 # default pytorch floating point precision is 4 digits after the point
