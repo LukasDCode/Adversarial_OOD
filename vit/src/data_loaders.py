@@ -8,7 +8,7 @@ from albumentations.pytorch.transforms import ToTensorV2
 
 __all__ = ['cifar10DataLoader', 'ImageNetDataLoader', 'cifar100DataLoader']
 
-def get_transform(contrastive=True, train=True, image_size=224, dataset='cifar10', network='vit', albumentations=False, no_train_aug=False,deit=False):
+def get_transform(contrastive=True, train=True, image_size=224, dataset='cifar10', network='vit', albumentations=False, no_train_aug=False, deit=False):
     scale = (0.2, 1.)
     if network=='vit':
         if deit:
@@ -27,6 +27,9 @@ def get_transform(contrastive=True, train=True, image_size=224, dataset='cifar10
         elif dataset == 'cifar100':
             mean = (0.5071, 0.4867, 0.4408)
             std = (0.2675, 0.2565, 0.2761)
+        elif dataset == 'svhn':
+            mean = (0.5, 0.5, 0.5)
+            std = (0.5, 0.5, 0.5)
         elif 'ImageNet' in dataset :
             mean =(0.485, 0.456, 0.406)
             std = (0.229, 0.224, 0.225)
@@ -56,6 +59,7 @@ def get_transform(contrastive=True, train=True, image_size=224, dataset='cifar10
             else:
                 transform = TwoCropTransform(transforms.Compose([
                     transforms.RandomResizedCrop(size=image_size, scale=scale),
+                    #transforms.RandomResizedCrop(size=image_size),
                     transforms.RandomHorizontalFlip(),
                     transforms.RandomApply([
                         transforms.ColorJitter(0.4, 0.4, 0.4, 0.1), transforms.RandomAffine(30),

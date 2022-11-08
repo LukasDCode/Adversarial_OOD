@@ -9,20 +9,20 @@ import utils.models.modules_ibp as modules_ibp
 
 
 # PyTorch models inherit from torch.nn.Module
-class GarmentClassifier(nn.Module):
+class MiniNet(nn.Module):
     def __init__(self):
-        super(GarmentClassifier, self).__init__()
-        self.conv1 = nn.Conv2d(3, 224, 224)
-        self.pool = nn.MaxPool2d(32, 32)
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 4 * 4, 120)
+        self.fc1 = nn.Linear(16 * 53 * 53, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 2) # 2 classes for ID and OOD
+        self.fc3 = nn.Linear(84, 1) #only one output because of BCELoss
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 4 * 4)
+        x = torch.flatten(x, 1)  # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
@@ -36,8 +36,7 @@ class GarmentClassifier(nn.Module):
 
 # copied from Alex Code
 class CNN_IBP(nn.Module):
-    def __init__(self, dset_in_name='CIFAR10', size='L', width=None, last_bias=True, num_classes=None,
-                 last_layer_neg=False):
+    def __init__(self, dset_in_name='CIFAR10', num_classes=2, last_layer_neg=False):
         super().__init__()
         if dset_in_name == 'MNIST':
             self.color_channels = 1
@@ -58,8 +57,6 @@ class CNN_IBP(nn.Module):
         else:
             raise ValueError(f'{dset_in_name} dataset not supported.')
         self.num_classes = num_classes
-        self.size = size
-        self.width = width
 
         if last_layer_neg:
             last_layer_type = modules_ibp.LinearI_Neg
@@ -71,13 +68,13 @@ class CNN_IBP(nn.Module):
         self.width = 1
         self.C1 = modules_ibp.Conv2dI(self.color_channels, 128 * self.width, 3, padding=1, stride=1)
         self.A1 = modules_ibp.ReLUI()
-        self.C2 = modules_ibp.Conv2dI(128 *self.width, 256 *self.width, 3, padding=1, stride=2)
+        self.C2 = modules_ibp.Conv2dI(128 * self.width, 256 * self.width, 3, padding=1, stride=2)
         self.A2 = modules_ibp.ReLUI()
-        self.C3 = modules_ibp.Conv2dI(256 *self.width, 256 *self.width, 3, padding=1, stride=1)
+        self.C3 = modules_ibp.Conv2dI(256 * self.width, 256 * self.width, 3, padding=1, stride=1)
         self.A3 = modules_ibp.ReLUI()
         self.pool = modules_ibp.AvgPool2dI(2)
         self.F = modules_ibp.FlattenI()
-        self.L4 = modules_ibp.LinearI(256 *self.width *(self.hw//4)**2, 128)
+        self.L4 = modules_ibp.LinearI(256 * self.width * (self.hw//4)**2, 128)
         self.A4 = modules_ibp.ReLUI()
         self.L5 = last_layer_type(128, self.num_classes)
 
