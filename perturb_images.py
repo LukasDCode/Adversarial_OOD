@@ -36,6 +36,9 @@ def perturb_image_batch(model, attack, dataloader, device, visualization=False):
         # calls the perturb() of RestartAttack --> which calls perturb_inner() of MonotonePGD
         perturbed_image_batch, best_softmax_list, best_idx = attack(image_batch.clone(), label_batch)  # size = [16, 3, 224, 224]
         normalized_perturbed_image_batch = normalize_cifar100_image_data(perturbed_image_batch.clone().detach())
+        # image_batch =                      [16, 3, 224, 224] = [batch_size, channels, img_size, img_size]
+        # perturbed_image_batch =            [16, 3, 224, 224] = [batch_size, channels, img_size, img_size]
+        # normalized_perturbed_image_batch = [16, 3, 224, 224] = [batch_size, channels, img_size, img_size]
 
         print_batch_image_modification_path(best_softmax_list, best_idx, model.classifier.out_features, label_batch)
 
@@ -105,4 +108,6 @@ def perturb_single_image(model, attack, dataloader, device, visualization=False)
                 break  # break after 1 image
         break  # break after 1 batch
     return clean_out, perturbed_out
+
+
 

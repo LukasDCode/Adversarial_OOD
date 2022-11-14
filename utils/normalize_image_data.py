@@ -19,14 +19,8 @@ def normalize_SVHN_image_data(image_data):
     transform = torchvision.transforms.Compose([torchvision.transforms.Normalize(svhn_mean, svhn_std)])
     return transform(image_data)
 
-def normalize_LSUN_image_data(image_data):
-    lsun_mean = (0.5, 0.5, 0.5) # TODO adapt to LSUN
-    lsun_std = (0.5, 0.5, 0.5) # TODO adapt to LSUN
-    transform = torchvision.transforms.Compose([torchvision.transforms.Normalize(lsun_mean, lsun_std)])
-    return transform(image_data)
-
 def normalize_general_image_data(image_data):
-    mean = (0.5, 0.5, 0.5) # TODO adapt to LSUN
-    std = (0.5, 0.5, 0.5) # TODO adapt to LSUN
+    mean = (0.5, 0.5, 0.5)
+    std = (0.5, 0.5, 0.5)
     transform = torchvision.transforms.Compose([torchvision.transforms.Normalize(mean, std)])
     return transform(image_data)

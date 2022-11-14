@@ -2,11 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 import utils.models.modules_ibp as modules_ibp
-
-
-
 
 # PyTorch models inherit from torch.nn.Module
 class MiniNet(nn.Module):
@@ -17,7 +13,7 @@ class MiniNet(nn.Module):
         self.conv2 = nn.Conv2d(6, 16, 5)
         self.fc1 = nn.Linear(16 * 53 * 53, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 1) #only one output because of BCELoss
+        self.fc3 = nn.Linear(84, 2) #only one output because of BCELoss
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
@@ -36,24 +32,20 @@ class MiniNet(nn.Module):
 
 # copied from Alex Code
 class CNN_IBP(nn.Module):
-    def __init__(self, dset_in_name='CIFAR10', num_classes=2, last_layer_neg=False):
+    def __init__(self, dset_in_name='cifar10', num_classes=2, last_layer_neg=False):
         super().__init__()
-        if dset_in_name == 'MNIST':
-            self.color_channels = 1
-            self.hw = 28
-            num_classes = 10 if num_classes is None else num_classes
-        elif dset_in_name == 'CIFAR10' or dset_in_name == 'SVHN':
+        if dset_in_name == 'cifar10' or dset_in_name == 'SVHN':
             self.color_channels = 3
             self.hw = 32
             num_classes = 10 if num_classes is None else num_classes
+        elif dset_in_name == 'cifar100':
+            self.color_channels = 3
+            self.hw = 32
+            num_classes = 100 if num_classes is None else num_classes
         elif dset_in_name == 'CIFAR100':
             self.color_channels = 3
             self.hw = 32
             num_classes = 100 if num_classes is None else num_classes
-        elif dset_in_name == 'RImgNet':
-            self.color_channels = 3
-            self.hw = 224
-            num_classes = 9 if num_classes is None else num_classes
         else:
             raise ValueError(f'{dset_in_name} dataset not supported.')
         self.num_classes = num_classes
@@ -67,6 +59,7 @@ class CNN_IBP(nn.Module):
 
         self.width = 1
         self.C1 = modules_ibp.Conv2dI(self.color_channels, 128 * self.width, 3, padding=1, stride=1)
+        #self.C1 = modules_ibp.Conv2dI(self.color_channels, 224 * self.width, 3, padding=1, stride=1)
         self.A1 = modules_ibp.ReLUI()
         self.C2 = modules_ibp.Conv2dI(128 * self.width, 256 * self.width, 3, padding=1, stride=2)
         self.A2 = modules_ibp.ReLUI()
@@ -77,6 +70,8 @@ class CNN_IBP(nn.Module):
         self.L4 = modules_ibp.LinearI(256 * self.width * (self.hw//4)**2, 128)
         self.A4 = modules_ibp.ReLUI()
         self.L5 = last_layer_type(128, self.num_classes)
+        self.L4.name = "L4"
+        self.L5.name = "L5"
 
         self.layers = (self.C1,
                        self.A1,
