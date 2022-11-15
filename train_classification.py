@@ -66,18 +66,18 @@ def train_classifier(args):
 
     if args.save_model:
         # Save the model
-        model_path = "utils/models/saved_models/"
+        model_path = "utils/models/saved_models/classifier/"
         saved_model_name = args.classification_model_name + "_" + str(args.img_size) + "SupCE_" + args.dataset + "_bs"\
-                           + str(args.batch_size/2) + "_lr" + str(args.lr).strip(".") + "_epochs" + str(args.epochs)\
+                           + str(args.batch_size/2) + "_lr" + str(args.lr).strip('.') + "_epochs" + str(args.epochs)\
                            + "_" + str(int(time.time())) + ".pth"
 
-        saved_model_name = "test.pth"
+        #saved_model_name = "test.pth"
 
-        #torch.save(classification_model.state_dict(), model_path + saved_model_name)
         torch.save({
                 'model_name': args.classification_model_name,
                 'img_size': args.img_size,
                 'dataset': args.dataset,
+                'num_classes': args.num_classes,
                 'batch_size': args.batch_size,
                 'lr': args.lr,
                 'epoch': args.epochs,
@@ -92,6 +92,10 @@ def train_one_epoch(args, classification_model, loss_fn, optimizer, train_datalo
     running_loss, last_loss = 0., 0.
 
     for i, (inputs, labels) in enumerate(tqdm(train_dataloader)):
+        # some dataloaders return a list within a list with duplicates, but we only need one of those doubles
+        if isinstance(inputs, list):
+            inputs = inputs[0]
+
         inputs, labels = inputs.to(device=args.device), labels.to(device=args.device)
         inputs.requires_grad = True  # possible because leaf of the acyclic graph
         if args.dataset.lower() == "cifar10":
@@ -116,7 +120,7 @@ def train_one_epoch(args, classification_model, loss_fn, optimizer, train_datalo
         del normalized_inputs, loss  # delete for performance reasons to free up cuda memory
         if args.device == "cuda": torch.cuda.empty_cache()
 
-        print_interval = 100
+        print_interval = 16384/args.batch_size
         if i % print_interval == print_interval - 1:
             last_loss = running_loss / print_interval  # loss per batch
             print("   Batch", i + 1, "loss:", last_loss)
@@ -129,7 +133,7 @@ def test_classifier(args):
     if args.classification_ckpt:
         checkpoint_path = args.classification.ckpt
     else:
-        checkpoint_path = "utils/models/saved_models/test.pth"
+        checkpoint_path = "utils/models/saved_models/classifier/resnet_224SupCE_cifar10_bs256.0_lr0.0001_epochs100_1668460320.pth" # "utils/models/saved_models/classifier/test.pth"
         # "/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
 
     checkpoint = torch.load(checkpoint_path)
@@ -138,6 +142,7 @@ def test_classifier(args):
     args.classification_model_name = checkpoint['model_name']
     args.img_size = checkpoint['img_size']
     args.dataset = checkpoint['dataset']
+    args.num_classes = checkpoint['num_classes']
     args.batch_size = checkpoint['batch_size']
     args.lr = checkpoint['lr']
 
@@ -191,14 +196,14 @@ def parse_args():
     parser.add_argument('--num_classes', type=int, default=10, help='int - amount of different clsases in the dataset')
     parser.add_argument('--loss', type=str, default="ce", help='str - how the loss is calculated for the ood sample "bce" ("maxconf" not working yet)')
 
-    parser.add_argument('--epochs', type=int, default=4, help='int - amount of training epochs')
-    parser.add_argument('--lr', type=float, default=0.0001, help='float - learning rate of the model')
+    parser.add_argument('--epochs', type=int, default=10, help='int - amount of training epochs')
+    parser.add_argument('--lr', type=float, default=0.01, help='float - learning rate of the model')
     parser.add_argument('--lr_decay', type=float, default=0.5, help='float - how much the lr drops after every unsuccessfull step')
     parser.add_argument('--lr_gain', type=float, default=1.1, help='float - how much the lr raises after every successfull step')
+    parser.add_argument('--momentum', type=float, default=0.9, help='float - factor to change the model weights in gradient descent')
     parser.add_argument('--stepsize', type=float, default=0.01, help='float - factor to change the model weights in gradient descent of the adversarial attack')
     parser.add_argument('--num_heads', type=int, default=4, help='int - amount of attention heads for the vit model')
     parser.add_argument('--num_layers', type=int, default=5, help='int - amount of parallel layers doing the calculations for the vit model')
-    parser.add_argument('--momentum', type=float, default=0.9, help='float - factor to change the model weights in gradient descent')
 
     parser.add_argument('--img_size', type=int, default=224, help='int - amount of pixel for the images')
     parser.add_argument('--batch_size', type=int, default=256, help='int - amount of images in the train, valid or test batches')
@@ -217,19 +222,20 @@ if __name__ == '__main__':
     args.detector_model_name = None
 
 
-    #"""
-    args.epochs = 2
+    """
+    args.epochs = 1
     args.lr = 0.0001
     args.batch_size = 8 #512  # for training the classifier more than 128 is possible, in the detector it would give a CUDA out of memory --> RuntimeError
 
-    args.save_model = True  # True
-    args.test = True  # if True --> Testing, else False --> Training
+    args.save_model = False  # True
+    args.test = False  # if True --> Testing, else False --> Training
     args.classification_model_name = "resnet"  # mininet, vit, resnet, cnn_ibp
 
     args.dataset = "svhn"
+    args.num_classes = 100
 
     # args.img_size = 112
-    #"""
+    """
 
     if args.test:
         test_classifier(args)

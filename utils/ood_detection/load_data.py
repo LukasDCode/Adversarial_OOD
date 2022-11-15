@@ -59,7 +59,8 @@ def get_SVHN_train_valid_dataloader(args):
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,), )
     ])
-    dataset_train = SVHN(root="/home/wiss/koner/lukas/Adversarial_OOD/data/svhn/", split="train", download=True, transform=transform)
+    # /home/wiss/koner/lukas/Adversarial_OOD/data/svhn/
+    dataset_train = SVHN(root="/home-local/koner/lukas/Adversarial_OOD/data/svhn/", split="train", download=True, transform=transform)
     dataset_train, dataset_valid = split_test_valid_dataset(dataset_train)
     #dataset_test = SVHN(root="/home/wiss/koner/lukas/Adversarial_OOD/data/svhn/", split="test", download=True, transform=transform)
 
@@ -72,7 +73,7 @@ def get_SVHN_test_dataloader(args):
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,), )
     ])
-    dataset_test = SVHN(root="/home/wiss/koner/lukas/Adversarial_OOD/data/svhn/", split="test", download=True, transform=transform)
+    dataset_test = SVHN(root="/home-local/koner/lukas/Adversarial_OOD/data/svhn/", split="test", download=True, transform=transform)
 
     return create_dataloader_from_dataset(args, dataset_test)
 
@@ -134,6 +135,4 @@ def shuffle_batch_elements(data_id, data_ood):
     # if the duplicated labels tensor doesnt work, maybe flipping the 2nd dimension with a Tile '~' works
     # shuffled_targets[1] = ~shuffled_targets[1] or something like this
 
-    del data_id[1], data_ood[1] # remove the unused original class labels for performance (not a huge gain though)
-
-    return shuffled_inputs, shuffled_targets
+    del data_id[1], data_ood[1] # remove the unused original class labels for performance (not 

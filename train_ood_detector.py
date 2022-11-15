@@ -104,7 +104,7 @@ def train_detector(args, classification_model):
 
     if args.save_model:
         # Save the model
-        model_path = "utils/models/saved_models/"
+        model_path = "utils/models/saved_models/detector/"
         saved_model_name = args.detector_model_name + "_" + str(args.img_size) + "SupCE_ID" + args.data_id + "_OOD"\
                            + args.data_ood + "_bs" + str(args.batch_size) + "_lr" + str(args.lr).strip(".") + "_epochs"\
                            + str(args.epochs) + "_" + str(int(time.time())) + ".pth"
@@ -185,7 +185,7 @@ def error_criterion(outputs,labels):
 
 
 def test_detector(args):
-    model_path = "utils/models/saved_models/"
+    model_path = "utils/models/saved_models/detector/"
     #saved_model_name = args.detector_model_name + "_" + str(args.img_size) + "SupCE_ID" + args.data_id + "_OOD"\
     #                       + args.data_ood + "_bs" + str(args.batch_size) + "_lr" + str(args.lr).strip(".") + "_epochs"\
     #                       + str(args.epochs) + "_" + str(int(time.time())) + ".pth"
