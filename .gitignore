@@ -15,7 +15,7 @@ save/
 test.py
 console_output
 model_20221026_143350_0
-bash_tester.py
-bash_trainer.py
+bash_tester.sh
+bash_trainer.sh
 
 
