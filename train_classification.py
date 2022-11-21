@@ -131,7 +131,7 @@ def train_one_epoch(args, classification_model, loss_fn, optimizer, train_datalo
 
 def test_classifier(args):
     if args.classification_ckpt:
-        checkpoint_path = args.classification.ckpt
+        checkpoint_path = args.classification_ckpt
     else:
         checkpoint_path = "utils/models/saved_models/classifier/resnet_224SupCE_cifar10_bs256.0_lr0.0001_epochs100_1668460320.pth" # "utils/models/saved_models/classifier/test.pth"
         # "/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
@@ -202,10 +202,10 @@ def parse_args():
     parser.add_argument('--lr_gain', type=float, default=1.1, help='float - how much the lr raises after every successfull step')
     parser.add_argument('--momentum', type=float, default=0.9, help='float - factor to change the model weights in gradient descent')
     parser.add_argument('--stepsize', type=float, default=0.01, help='float - factor to change the model weights in gradient descent of the adversarial attack')
-    parser.add_argument('--num_heads', type=int, default=4, help='int - amount of attention heads for the vit model')
-    parser.add_argument('--num_layers', type=int, default=5, help='int - amount of parallel layers doing the calculations for the vit model')
+    parser.add_argument('--num_heads', type=int, default=12, help='int - amount of attention heads for the vit model')
+    parser.add_argument('--num_layers', type=int, default=12, help='int - amount of parallel layers doing the calculations for the vit model')
 
-    parser.add_argument('--img_size', type=int, default=224, help='int - amount of pixel for the images')
+    parser.add_argument('--img_size', type=int, default=32, help='int - amount of pixel for the images')
     parser.add_argument('--batch_size', type=int, default=256, help='int - amount of images in the train, valid or test batches')
     parser.add_argument('--workers', type=int, default=0, help='int - amount of workers in the dataloader')
 
@@ -224,15 +224,15 @@ if __name__ == '__main__':
 
     """
     args.epochs = 1
-    args.lr = 0.0001
-    args.batch_size = 8 #512  # for training the classifier more than 128 is possible, in the detector it would give a CUDA out of memory --> RuntimeError
+    args.lr = 0.001
+    args.batch_size = 32 #512  # for training the classifier more than 128 is possible, in the detector it would give a CUDA out of memory --> RuntimeError
 
     args.save_model = False  # True
     args.test = False  # if True --> Testing, else False --> Training
     args.classification_model_name = "resnet"  # mininet, vit, resnet, cnn_ibp
 
-    args.dataset = "svhn"
-    args.num_classes = 100
+    args.dataset = "cifar10"
+    args.num_classes = 10
 
     # args.img_size = 112
     """

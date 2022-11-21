@@ -220,6 +220,7 @@ def test_detector(args):
         print("Finished Testing the Model")
 
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Run the monotone PGD attack on a batch of images, default is with ViT and the MPGD of Alex, where cifar10 is ID and cifar100 is OOD')
 
@@ -250,7 +251,7 @@ def parse_args():
     parser.add_argument('--num_layers', type=int, default=5, help='int - amount of parallel layers doing the calculations for the vit model')
     parser.add_argument('--momentum', type=float, default=0.9, help='float - factor to change the model weights in gradient descent')
 
-    parser.add_argument('--img_size', type=int, default=224, help='int - amount of pixel for the images')
+    parser.add_argument('--img_size', type=int, default=32, help='int - amount of pixel for the images')
     parser.add_argument('--batch_size', type=int, default=128, help='int - amount of images in the train, valid or test batches')
     parser.add_argument('--workers', type=int, default=0, help='int - amount of workers in the dataloader')
 

@@ -279,7 +279,8 @@ def create_dataloaders(config,no_train_aug=False, out_dataset=False):
     elif no_train_aug:
         config.deit = 'deit' in config.ckpt.rsplit('/',3)[1].lower()
     else:
-        config.deit ='deit' in config.exp_name.lower() or 'deit' in os.path.basename(config.checkpoint_path) #
+        # CHANGE commented out after 'deit'
+        config.deit ='deit' #in config.exp_name.lower() or 'deit' in os.path.basename(config.checkpoint_path) #
     # create dataloader
     print("Creating dataloaders for {0} with network {1} and ablumentations {2}".format(dataset, config.model, config.albumentation))
     train_dataloader = eval("{}DataLoader".format(dataset))(

@@ -208,15 +208,17 @@ def set_loader(opt, img_size=32):
 
 def set_model(opt):
     if opt.model=='vit':
+        # CHANGE commented unspecified args out
         model = ViT(image_size=(opt.image_size, opt.image_size),
              patch_size=(opt.patch_size, opt.patch_size),
-             emb_dim=opt.emb_dim,
-             mlp_dim=opt.mlp_dim,
+             #emb_dim=opt.emb_dim,
+             #mlp_dim=opt.mlp_dim,
              num_heads=opt.num_heads,
              num_layers=opt.num_layers,
              num_classes=opt.num_classes,
-             attn_dropout_rate=opt.attn_dropout_rate,
-             dropout_rate=opt.dropout_rate)
+             #attn_dropout_rate=opt.attn_dropout_rate,
+             #dropout_rate=opt.dropout_rate)
+                    )
     else:
         if opt.pretrained:
             model = eval("models.{}".format(opt.model))(pretrained=opt.pretrained)
@@ -372,6 +374,11 @@ def main():
     best_acc = 0
     opt = parse_option()
 
+    #CHANGE
+    opt.patch_size = 7
+    opt.num_heads = 12
+    opt.num_layers = 12
+
     if opt.seed !=None: # fix the seed for reproducibility
         torch.manual_seed(opt.seed)
         np.random.seed(opt.seed)
@@ -422,7 +429,9 @@ def main():
         logger.log_value('val_loss', loss, epoch)
         logger.log_value('val_acc', val_acc, epoch)
 
-        val_acc_list.append(val_acc)
+        # CHANGE to make tensor json serializable
+        #val_acc_list.append(val_acc)
+        val_acc_list.append(val_acc.item())
         save_epoch_list.append(epoch)
 
         if val_acc > best_acc:

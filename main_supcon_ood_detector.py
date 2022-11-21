@@ -26,7 +26,7 @@ from main_linear import train as train_classifier
 from vit.src.model import VisionTransformer as ViT
 from vit.src.utils import setup_device
 from vit.src.checkpoint import load_checkpoint
-from vit.src.data_loaders import create_dataloaders
+from vit.src.data_loaders import SVHNDataLoader, cifar100DataLoader, cifar10DataLoader, get_transform
 
 from vit.src.config import *
 
@@ -45,76 +45,67 @@ import os
 def parse_option():
     parser = argparse.ArgumentParser('argument for training')
 
-    parser.add_argument('--print_freq', type=int, default=100,
-                        help='print frequency')
-    parser.add_argument('--batch_size', type=int, default=2048,
-                        help='batch_size')
-    parser.add_argument('--num_workers', type=int, default=16,
-                        help='num of workers to use')
-    parser.add_argument('--epochs', type=int, default=700,
-                        help='number of training epochs')
-    parser.add_argument('--val_freq', type=int, default=50,
-                        help='number of epochs after which validation is done/model saved')
+    parser.add_argument('--print_freq', type=int, default=100, help='print frequency')
+    parser.add_argument('--batch_size', type=int, default=2048, help='batch_size')
+    parser.add_argument('--num_workers', type=int, default=16, help='num of workers to use')
+    parser.add_argument('--epochs', type=int, default=700, help='number of training epochs')
+    parser.add_argument('--val_freq', type=int, default=50, help='number of epochs after which validation is done/model saved')
 
     # optimization
-    parser.add_argument('--optimizer', type=str, default='SGD',    # CT with simclr default with 'LARS' optimizer, momentum 0.9 and weight decay 1e-6 and initial LR 1.0
-                        choices=['LARS', 'SGD', 'RMSprop'], help='optimizer')
-    parser.add_argument('--learning_rate', type=float, default=0.5, # CT with simclr default: 1.0
-                        help='learning rate')
-    parser.add_argument('--lr_decay_epochs', type=str, default='500,700,900',
-                        help='where to decay lr, can be a list')
-    parser.add_argument('--lr_decay_rate', type=float, default=0.1,
-                        help='decay rate for learning rate')
-    parser.add_argument('--weight_decay', type=float, default=1e-4, # CT with simclr default: 1e-6
-                        help='weight decay')
-    parser.add_argument('--momentum', type=float, default=0.9,     # CT with simclr default: 0.9
-                        help='momentum')
-    parser.add_argument('--reduce_lr', type=float, default=0.0,     #todo donot change this for contrastive training, 0 ignores reduce_lr
-                        help='reduce learning rate for detector')
+    parser.add_argument('--optimizer', type=str, default='SGD', choices=['LARS', 'SGD', 'RMSprop'], help='optimizer') # CT with simclr default with 'LARS' optimizer, momentum 0.9 and weight decay 1e-6 and initial LR 1.0
+    parser.add_argument('--learning_rate', type=float, default=0.5, help='learning rate') # CT with simclr default: 1.0
+    parser.add_argument('--lr_decay_epochs', type=str, default='500,700,900', help='where to decay lr, can be a list')
+    parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
+    parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay') # CT with simclr default: 1e-6
+    parser.add_argument('--momentum', type=float, default=0.9, help='momentum') # CT with simclr default: 0.9
+    parser.add_argument('--reduce_lr', type=float, default=0.0, help='reduce learning rate for detector') # DO NOT change this for contrastive training, 0 ignores reduce_lr
 
     # model dataset
-    parser.add_argument('--model', type=str, default='resnet50',
-                choices=['resnet18','resnet34','resnet50','resnet200', 'wide_resnet50_3', 'vit'], help='network type')
-    parser.add_argument('--dataset', type=str, default='cifar10',
-                        choices=['cifar10', 'cifar100', 'imagenet','imagenet30','stl10'], help='dataset')
-    parser.add_argument('--use_subset', action='store_true', help='sub set of classes')
+    parser.add_argument('--model', type=str, default='vit', choices=['resnet18','resnet34','resnet50','resnet200', 'wide_resnet50_3', 'vit'], help='network type')
+    #parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'imagenet','imagenet30','stl10'], help='dataset')
+    #parser.add_argument('--use_subset', action='store_true', help='sub set of classes')
+    parser.add_argument('--data_id', type=str, default="cifar10", help='str - the in-distribution dataset "cifar10", "cifar100" or "svhn"')
+    parser.add_argument('--data_ood', type=str, default="svhn", help='str - the out-distribution dataset "cifar10", "cifar100" or "svhn"')
+    parser.add_argument('--data_path', type=str, default="data/", help='str - path of all stored datasets')
 
     # method
-    parser.add_argument('--method', type=str, default='SupCon',
-                        choices=['SupCon', 'SimCLR'], help='choose method')
+    parser.add_argument('--method', type=str, default='SupCon', choices=['SupCon', 'SimCLR'], help='choose method')
     # similarity metric
-    parser.add_argument('--sim_metric', type=str, default='Cosine',
-                        choices=['Cosine', 'Euclidean', 'Mahalanobis'], help='similarity metric used in contrastive loss')
+    parser.add_argument('--sim_metric', type=str, default='Cosine', choices=['Cosine', 'Euclidean', 'Mahalanobis'], help='similarity metric used in contrastive loss')
     # temperature
-    parser.add_argument('--temp', type=float, default=0.1,  # CT with simclr default: 0.1
-                        help='temperature for loss function')
+    parser.add_argument('--temp', type=float, default=0.1, help='temperature for loss function') # CT with simclr default: 0.1
     parser.add_argument('--albumentation', action='store_true', help='use albumentation as data aug')
+
+    # PGD attack settings
+    parser.add_argument('--eps', type=float, default=0.01, help='float - the radius of the max perturbation ball around the sample')
+    parser.add_argument('--norm', type=str, default="inf", help='str - inf or l2 norm (currently only inf)')
+    parser.add_argument('--iterations', type=int, default=15, help='int - how many steps of perturbations for each restart')
+    parser.add_argument('--restarts', type=int, default=2, help='int - how often the MPGD attack starts over at a random place in its eps-space')
+    parser.add_argument('--noise', type=str, default="normal", help='str - normal, uniform, contraster or decontraster noise is possible')
+
 
 
     # other setting
-    parser.add_argument('--distributed', action='store_true',
-                        help='using distributed loss calculations across multiple GPUs')
-    parser.add_argument('--cosine', action='store_true',
-                        help='using cosine annealing')
-    parser.add_argument('--syncBN', action='store_true',
-                        help='using synchronized batch normalization')
-    parser.add_argument('--warm', action='store_true',
-                        help='warm-up for large batch training')
-    parser.add_argument('--half', action='store_true',
-                        help='train using half precision')
-    parser.add_argument('--trial', type=str, default='0',
-                        help='id for recording multiple runs')
+    parser.add_argument('--distributed', action='store_true', help='using distributed loss calculations across multiple GPUs')
+    parser.add_argument('--cosine', action='store_true', help='using cosine annealing')
+    parser.add_argument('--syncBN', action='store_true', help='using synchronized batch normalization')
+    parser.add_argument('--warm', action='store_true', help='warm-up for large batch training')
+    parser.add_argument('--half', action='store_true', help='train using half precision')
+    parser.add_argument('--trial', type=str, default='0', help='id for recording multiple runs')
     parser.add_argument('--seed', default=12321, type=int)
     parser.add_argument('--data_folder', default='./datasets/', type=str)
     parser.add_argument('--root_folder', default='.', type=str)
 
     #vit related settings
-    parser.add_argument("--model_arch", type=str, default="b16", help='model setting to use',
-                        choices=['b16', 'b32', 'l16', 'l32', 'h14'])
-    parser.add_argument("--checkpoint-path", type=str, default=None, help="model checkpoint to load weights")
+    parser.add_argument("--model_arch", type=str, default="b16", help='model setting to use', choices=['b16', 'b32', 'l16', 'l32', 'h14'])
+    #parser.add_argument("--checkpoint_path", type=str, default=None, help="model checkpoint to load weights")
+    parser.add_argument('--detection_model_name', type=str, default="vit", help='str - what model should be used to classify input samples "vit", "resnet", "mininet" or "cnn_ibp"')
+    parser.add_argument('--detection_checkpoint_path', type=str, default=None, help='str - path of pretrained model checkpoint')
+    parser.add_argument('--classification_model_name', type=str, default="vit", help='str - what model should be used to classify input samples "vit", "resnet", "mininet" or "cnn_ibp"')
+    parser.add_argument('--classification_checkpoint_path', type=str, default=None, help='str - path of pretrained model checkpoint')
     parser.add_argument("--image-size", type=int, default=32, help="input image size", choices=[32, 48, 96, 224, 384, 160])
     parser.add_argument("--train-steps", type=int, default=10000, help="number of training/fine-tunning steps")
-
+    # "/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
 
     opt = parser.parse_args()
     if opt.model=='vit':
@@ -125,8 +116,8 @@ def parse_option():
 
     # set the path according to the environment
     #opt.data_folder = './datasets/'
-    opt.model_path = opt.root_folder + '/save/classification/{}/{}_models'.format(opt.method, opt.dataset)
-    opt.tb_path = opt.root_folder + '/save/classification/{}/{}_tensorboard'.format(opt.method, opt.dataset)
+    opt.model_path = opt.root_folder + '/save/detection/{}/{}_models'.format(opt.method, opt.data_id)
+    opt.tb_path = opt.root_folder + '/save/detection/{}/{}_tensorboard'.format(opt.method, opt.data_id)
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -134,7 +125,7 @@ def parse_option():
         opt.lr_decay_epochs.append(int(it))
 
     opt.model_name = '{}_{}_{}_lr_{}_dist_{}_decay_{}_bsz_{}_temp_{}_trial_{}'.\
-        format(opt.method, opt.dataset, opt.model if opt.model!='vit' else opt.model+'_'+opt.model_arch, opt.learning_rate,
+        format(opt.method, opt.data_id, opt.model if opt.model!='vit' else opt.model+'_'+opt.model_arch, opt.learning_rate,
                opt.sim_metric,opt.weight_decay, opt.batch_size, opt.temp, opt.trial)
 
     if opt.cosine:
@@ -172,16 +163,18 @@ def parse_option():
         to_write.write(str(x) + ' >>> ' + str(y) + '\n')
     to_write.close()
 
-    if opt.dataset == 'cifar10' or opt.dataset == 'stl10':
+    if opt.data_id == 'cifar10' or opt.data_id == 'svhn':
         opt.n_cls = 10
-    elif opt.dataset == 'cifar100':
+    elif opt.data_id == 'cifar100':
         opt.n_cls = 100
-    elif opt.dataset == 'imagenet':
-        opt.n_cls = 1000
-    elif opt.dataset == 'imagenet30':
-        opt.n_cls = 30
+        """
+        elif opt.data_id == 'imagenet':
+            opt.n_cls = 1000
+        elif opt.data_id == 'imagenet30':
+            opt.n_cls = 30
+        """
     else:
-        raise ValueError('dataset not supported: {}'.format(opt.dataset))
+        raise ValueError('dataset not supported: {}'.format(opt.data_id))
 
     # for main linear in validation
     val_opt = copy.deepcopy(opt)
@@ -194,27 +187,61 @@ def parse_option():
     return opt, val_opt
 
 
+def create_detector_dataloaders(config, dataset):
+    #dataset = config.data_id
+    if dataset == "svhn": dataset = "SVHN" #dataloader is spelled with capital letters
+    if config.model!='vit':
+        config.deit=False
+    else:
+        # CHANGE commented out after 'deit'
+        config.deit ='deit' #in config.exp_name.lower() or 'deit' in os.path.basename(config.checkpoint_path) #
+    # create dataloader
+    print("Creating dataloaders for {0} with network {1} and ablumentations {2}".format(dataset, config.model, config.albumentation))
+    train_dataloader = eval("{}DataLoader".format(dataset))(
+        data_dir=os.path.join(config.data_path, dataset.lower()), # os.path.join(config.data_dir, config.dataset),
+        image_size=config.image_size,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        split='train',
+        contrastive=config.contrastive,
+        albumentation=config.albumentation,
+        net=config.model,
+        no_train_aug=False,
+        in_dataset= config.data_id.lower(),
+        deit = config.deit) # for resnet where mean is different for each in dataset
+    valid_dataloader = eval("{}DataLoader".format(dataset))(
+        data_dir=os.path.join(config.data_path, dataset.lower()),  # os.path.join(config.data_dir, config.dataset),
+        image_size=config.image_size,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        split='val',
+        net=config.model,
+        in_dataset=config.data_id.lower(),
+        deit=config.deit)# for resnet where mean is different for each in dataset
+    return train_dataloader, valid_dataloader
+
+
 def set_loader(opt):
     opt.data_dir = opt.data_folder
     opt.contrastive = True
-    train_loader, val_loader = create_dataloaders(opt)
+    train_loader, val_loader = create_detector_dataloaders(opt, opt.data_id) # name of ID dataset
 
     val_train_loader = val_val_loader =None
     """
     scale = (0.2, 1.)
     # construct data loader
-    if opt.dataset == 'cifar10':
+    if opt.data_id == 'cifar10':
         mean = (0.4914, 0.4822, 0.4465)
         std = (0.2023, 0.1994, 0.2010)
-    elif opt.dataset == 'cifar100':
+    elif opt.data_id == 'cifar100':
         mean = (0.5071, 0.4867, 0.4408)
         std = (0.2675, 0.2565, 0.2761)
-    elif 'imagenet' in opt.dataset or opt.model=='vit':
+    elif 'imagenet' in opt.data_id or opt.model=='vit':
         mean =(0.485, 0.456, 0.406)
         std = (0.229, 0.224, 0.225)
         scale = (0.08, 1.0) #defaul for random resize corp
     else:
-        raise ValueError('dataset not supported: {}'.format(opt.dataset))
+        raise ValueError('dataset not supported: {}'.format(opt.data_id))
     normalize = transforms.Normalize(mean=mean, std=std)
 
     train_transform = transforms.Compose([
@@ -232,29 +259,29 @@ def set_loader(opt):
         normalize,
     ])
 
-    if opt.dataset == 'cifar10':
+    if opt.data_id == 'cifar10':
         train_dataset = datasets.CIFAR10(root=opt.data_folder,
                                          transform=TwoCropTransform(train_transform),
                                          download=True)
         val_dataset = datasets.CIFAR10(root=opt.data_folder,
                                        train=False,
                                        transform=val_transform)
-    elif opt.dataset == 'cifar100':
+    elif opt.data_id == 'cifar100':
         train_dataset = datasets.CIFAR100(root=opt.data_folder,
                                           transform=TwoCropTransform(train_transform),
                                           download=True)
         val_dataset = datasets.CIFAR100(root=opt.data_folder,
                                        train=False,
                                        transform=val_transform)
-    elif 'imagenet' in opt.dataset :
-        train_dataset = datasets.ImageNet(root=os.path.join(opt.data_folder,'LSVRC2015' if opt.dataset=='imagenet' else 'imagenet30'),
+    elif 'imagenet' in opt.data_id :
+        train_dataset = datasets.ImageNet(root=os.path.join(opt.data_folder,'LSVRC2015' if opt.data_id=='imagenet' else 'imagenet30'),
                                           transform=TwoCropTransform(train_transform),
                                           download=False)
         val_dataset = datasets.ImageNet(root=opt.data_folder,
                                         train=False,
                                         transform=val_transform)
     else:
-        raise ValueError(opt.dataset)
+        raise ValueError(opt.data_id)
 
     if opt.use_subset:
         print("Currently using CIFAR 10 subset")
@@ -276,13 +303,13 @@ def set_loader(opt):
     #call validation loader as supcon loader two corp transform
     # create dataloader
     print("create dataloaders for validation")
-    val_train_loader = eval("{}DataLoader".format(opt.dataset))(
+    val_train_loader = eval("{}DataLoader".format(opt.data_id))(
         data_dir=opt.data_folder,
         image_size=opt.image_size,
         batch_size=opt.batch_size,
         num_workers=opt.num_workers,
         split='train')
-    val_val_loader = eval("{}DataLoader".format(opt.dataset))(
+    val_val_loader = eval("{}DataLoader".format(opt.data_id))(
         data_dir=opt.data_folder,
         image_size=opt.image_size,
         batch_size=opt.batch_size,
@@ -308,8 +335,8 @@ def set_model(opt):
     else:
         model = SupConResNet(name=opt.model)
 
-    if opt.checkpoint_path != None:
-        state_dict = load_checkpoint(opt.checkpoint_path, new_img=opt.image_size, patch=opt.patch_size)
+    if opt.detection_checkpoint_path != None:
+        state_dict = load_checkpoint(opt.detection_checkpoint_path, new_img=opt.image_size, patch=opt.patch_size)
         if opt.n_cls != state_dict['classifier.weight'].size(0):
             del state_dict['classifier.weight']
             del state_dict['classifier.bias']
@@ -317,7 +344,7 @@ def set_model(opt):
             model.load_state_dict(state_dict, strict=False)
         else:
             model.load_state_dict(state_dict)
-        print("Load pretrained weights from {}".format(opt.checkpoint_path))
+        print("Load pretrained weights from {}".format(opt.detection_checkpoint_path))
 
     if opt.distributed:
         model = DataParallelModel(model)
