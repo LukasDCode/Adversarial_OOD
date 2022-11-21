@@ -4,6 +4,7 @@ import argparse
 import torch
 import torchvision
 
+import utils.store_model
 from utils.normalize_image_data import normalize_general_image_data
 from utils.ood_detection.load_data import shuffle_batch_elements
 from utils.ood_detection.ood_detector import MiniNet, CNN_IBP
@@ -102,7 +103,7 @@ def train_detector(args, classification_model):
 
         epoch_number += 1
 
-    if args.save_model:
+    if utils.store_model.save_model:
         # Save the model
         model_path = "utils/models/saved_models/detector/"
         saved_model_name = args.detector_model_name + "_" + str(args.img_size) + "SupCE_ID" + args.data_id + "_OOD"\

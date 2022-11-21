@@ -18,6 +18,7 @@ from util import TwoCropTransform, AverageMeter
 from main_ce import set_loader as set_val_loader
 from util import adjust_learning_rate, warmup_learning_rate, accuracy
 from util import set_optimizer, save_model
+from utils.store_model import save_model, load_model
 from networks.resnet_big import SupConResNet, LinearClassifier
 from losses import SupConLoss
 from parallel import DataParallelModel, DataParallelCriterion
@@ -457,13 +458,6 @@ def main():
     # tensorboard
     logger = tb_logger.Logger(logdir=opt.tb_folder, flush_secs=2)
 
-    # saving the model before training (epoch 0)
-    epoch = 0
-    save_file = os.path.join(
-        opt.save_folder, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
-    print(save_file)
-    save_model(model, optimizer, opt, epoch, save_file)
-
     # training routine
     for epoch in range(1, opt.epochs + 1):
         adjust_learning_rate(opt, optimizer, epoch)
@@ -507,9 +501,7 @@ def main():
 
 
     # save the last model
-    # save_file = os.path.join(
-    #     opt.save_folder, 'last.pth')
-    # save_model(model, optimizer, opt, opt.epochs, save_file)
+    # save_model(opt, model, optimizer)
 
     #print('best validation accuracy: {:.2f}'.format(global_best_val_acc))
 

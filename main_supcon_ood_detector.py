@@ -83,8 +83,6 @@ def parse_option():
     parser.add_argument('--restarts', type=int, default=2, help='int - how often the MPGD attack starts over at a random place in its eps-space')
     parser.add_argument('--noise', type=str, default="normal", help='str - normal, uniform, contraster or decontraster noise is possible')
 
-
-
     # other setting
     parser.add_argument('--distributed', action='store_true', help='using distributed loss calculations across multiple GPUs')
     parser.add_argument('--cosine', action='store_true', help='using cosine annealing')

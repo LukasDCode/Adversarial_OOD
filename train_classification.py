@@ -1,12 +1,41 @@
 import argparse
-import time
 from tqdm import tqdm
 import torch
+import torchvision
 
-from utils.dotdict import dotdict
+from vit.src.model import VisionTransformer as ViT
+from utils.ood_detection.ood_detector import MiniNet, CNN_IBP
 from utils.normalize_image_data import normalize_general_image_data, normalize_cifar10_image_data, normalize_cifar100_image_data, normalize_SVHN_image_data
-from train_ood_detector import get_model_from_args
+#from train_ood_detector import get_model_from_args
 from ood_detection.load_data import get_train_valid_dataloaders, get_test_dataloader
+from utils.store_model import save_model, load_model
+
+
+def get_model_from_args(args, model_name, num_classes):
+    if model_name.lower() == "resnet":
+        model = torchvision.models.resnet18(pretrained=False, num_classes=num_classes).to(device=args.device) # cuda()
+    elif model_name.lower() == "vit":
+        #"""
+        model = ViT(image_size=(args.img_size, args.img_size),  # 224,224
+                    num_heads=args.num_heads, #12 #also a very small amount of heads to speed up training
+                    num_layers=args.num_layers,  # 12 # 5 is a very small vit model
+                    num_classes=num_classes,  # 2 for OOD detection, 10 or more for classification
+                    contrastive=False,
+                    timm=True).to(device=args.device) # cuda()
+        """
+        feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224")
+        model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
+        inputs = feature_extractor(image, return_tensors="pt")
+        """
+    elif model_name.lower() == "cnn_ibp":
+        #TODO currently not working, throwing error
+        #"RuntimeError: mat1 dim 1 must match mat2 dim 0"
+        model = CNN_IBP().to(device=args.device)
+    elif model_name.lower() == "mininet":
+        model = MiniNet().to(device=args.device)
+    else:
+        raise ValueError("Error - wrong model specified in 'args'")
+    return model
 
 
 def train_classifier(args):
@@ -65,27 +94,7 @@ def train_classifier(args):
         epoch_number += 1
 
     if args.save_model:
-        # Save the model
-        model_path = "utils/models/saved_models/classifier/"
-        saved_model_name = args.classification_model_name + "_" + str(args.img_size) + "SupCE_" + args.dataset + "_bs"\
-                           + str(args.batch_size/2) + "_lr" + str(args.lr).strip('.') + "_epochs" + str(args.epochs)\
-                           + "_" + str(int(time.time())) + ".pth"
-
-        #saved_model_name = "test.pth"
-
-        torch.save({
-                'model_name': args.classification_model_name,
-                'img_size': args.img_size,
-                'dataset': args.dataset,
-                'num_classes': args.num_classes,
-                'batch_size': args.batch_size,
-                'lr': args.lr,
-                'epoch': args.epochs,
-                'model_state_dict': classification_model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': args.loss,
-            }, model_path + saved_model_name)
-        print("Model saved in path: ", model_path + saved_model_name)
+        save_model(args, classification_model, optimizer)
 
 
 def train_one_epoch(args, classification_model, loss_fn, optimizer, train_dataloader):
@@ -130,25 +139,7 @@ def train_one_epoch(args, classification_model, loss_fn, optimizer, train_datalo
 
 
 def test_classifier(args):
-    if args.classification_ckpt:
-        checkpoint_path = args.classification_ckpt
-    else:
-        checkpoint_path = "utils/models/saved_models/classifier/resnet_224SupCE_cifar10_bs256.0_lr0.0001_epochs100_1668460320.pth" # "utils/models/saved_models/classifier/test.pth"
-        # "/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
-
-    checkpoint = torch.load(checkpoint_path)
-    args.epochs = checkpoint['epoch']
-    args.loss = checkpoint['loss']
-    args.classification_model_name = checkpoint['model_name']
-    args.img_size = checkpoint['img_size']
-    args.dataset = checkpoint['dataset']
-    args.num_classes = checkpoint['num_classes']
-    args.batch_size = checkpoint['batch_size']
-    args.lr = checkpoint['lr']
-
-    model = get_model_from_args(args, args.classification_model_name, args.num_classes)
-    model.load_state_dict(checkpoint['model_state_dict'])
-
+    model = load_model(args)
 
     # get a dataloader mixed 50:50 with ID and OOD data and labels of 0 (ID) and 1 (OOD)
     test_dataloader = get_test_dataloader(args)
@@ -222,20 +213,20 @@ if __name__ == '__main__':
     args.detector_model_name = None
 
 
-    """
+    # """
     args.epochs = 1
     args.lr = 0.001
-    args.batch_size = 32 #512  # for training the classifier more than 128 is possible, in the detector it would give a CUDA out of memory --> RuntimeError
+    args.batch_size = 512 #512  # for training the classifier more than 128 is possible, in the detector it would give a CUDA out of memory --> RuntimeError
 
-    args.save_model = False  # True
-    args.test = False  # if True --> Testing, else False --> Training
+    args.save_model = True  # True
+    args.test = True  # if True --> Testing, else False --> Training
     args.classification_model_name = "resnet"  # mininet, vit, resnet, cnn_ibp
 
     args.dataset = "cifar10"
     args.num_classes = 10
 
     # args.img_size = 112
-    """
+    #"""
 
     if args.test:
         test_classifier(args)
