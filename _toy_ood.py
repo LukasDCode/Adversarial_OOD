@@ -42,7 +42,7 @@ def parse_option():
     parser.add_argument('--print_freq', type=int, default=5,
                         help='print frequency')
     parser.add_argument('--save_freq', type=int, default=50,
-                        help='save frequency')
+                        help='_save frequency')
     parser.add_argument('--batch_size', type=int, default=256,
                         help='batch_size')
     parser.add_argument('--num_workers', type=int, default=16,
@@ -74,7 +74,7 @@ def parse_option():
     parser.add_argument('--temp', type=float, default=0.07,
                         help='temperature for loss function')
     #checkpoint
-    parser.add_argument('--ckpt', type=str, default='',help='path to pre-trained model')
+    parser.add_argument('--ckpt', type=str, default='',help='path to pretrained model')
 
     # other setting
     parser.add_argument('--cosine', action='store_true',
@@ -87,8 +87,8 @@ def parse_option():
 
     # set the path according to the environment
     opt.data_folder = './datasets/'
-    opt.model_path = './save/{}/toy_models'.format(opt.method)
-    opt.tb_path = './save/{}/toy_tensorboard'.format(opt.method)
+    opt.model_path = './_save/{}/toy_models'.format(opt.method)
+    opt.tb_path = './_save/{}/toy_tensorboard'.format(opt.method)
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -354,7 +354,7 @@ def main():
     if opt.model == 'mainCE':
         print('Best Acc : ',best_acc)
 
-    # save the last model
+    # _save the last model
     save_file = os.path.join(
         opt.save_folder, 'last.pth')
     save_model(model, optimizer, opt, opt.epochs, save_file)

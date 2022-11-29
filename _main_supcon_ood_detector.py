@@ -103,7 +103,7 @@ def parse_option():
     parser.add_argument('--classification_checkpoint_path', type=str, default=None, help='str - path of pretrained model checkpoint')
     parser.add_argument("--image-size", type=int, default=32, help="input image size", choices=[32, 48, 96, 224, 384, 160])
     parser.add_argument("--train-steps", type=int, default=10000, help="number of training/fine-tunning steps")
-    # "/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
+    # "/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
 
     opt = parser.parse_args()
     if opt.model=='vit':
@@ -114,8 +114,8 @@ def parse_option():
 
     # set the path according to the environment
     #opt.data_folder = './datasets/'
-    opt.model_path = opt.root_folder + '/save/detection/{}/{}_models'.format(opt.method, opt.data_id)
-    opt.tb_path = opt.root_folder + '/save/detection/{}/{}_tensorboard'.format(opt.method, opt.data_id)
+    opt.model_path = opt.root_folder + '/_save/detection/{}/{}_models'.format(opt.method, opt.data_id)
+    opt.tb_path = opt.root_folder + '/_save/detection/{}/{}_tensorboard'.format(opt.method, opt.data_id)
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -531,7 +531,7 @@ def main():
             """
 
 
-    # save the last model
+    # _save the last model
     # save_file = os.path.join(
     #     opt.save_folder, 'last.pth')
     # save_model(model, optimizer, opt, opt.epochs, save_file)
