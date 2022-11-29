@@ -12,18 +12,17 @@ pip install -r requirements.txt
 ## Train a Vision Transformer Classifier
 On Cifar10
 ```shell
-python train_classifier.py --exp-name train_vit_model_cifar10 --tensorboard --model-arch b16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_cifar10 --model-arch b16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 ```
 
 On Cifar100
 ```shell
-python train_classifier.py --exp-name train_vit_model_cifar100 --tensorboard --model-arch b16 --image-size 224 --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
-
+python train_classifier.py --exp-name train_vit_model_cifar100 --model-arch b16 --image-size 224 --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 ```
 
 On SVHN
 ```shell
-python train_classifier.py --exp-name train_vit_model_svhn --tensorboard --model-arch b16 --image-size 224 --data-dir data/ --dataset svhn --num-classes 10 --train-steps 2290 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_svhn --model-arch b16 --image-size 224 --data-dir data/ --dataset svhn --num-classes 10 --train-steps 2290 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 ```
 
 ### Test the Classifier
