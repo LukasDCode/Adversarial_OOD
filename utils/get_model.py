@@ -20,7 +20,7 @@ def get_model_from_args(args, model_name, num_classes):
                     dropout_rate=args.dropout_rate if args.dropout_rate else 0.1,
                     contrastive=False,
                     timm=True,
-                    head=args.head if args.head else None,
+                    head=None,
                     ).to(device=args.device) # cuda()
 
         """

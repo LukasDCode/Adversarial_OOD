@@ -33,7 +33,7 @@ def save_model(args, classification_model, optimizer):
     num_classes = 100 if dataset == "cifar100" else 10
 
     torch.save({
-        'model_name': args.model, # args.classification_model_name, # args.model,
+        'model_name': args.model, # args.model,
         'image_size': args.image_size, # args.img_size, # args.image_size,
         'dataset': dataset,
         'num_classes': num_classes,
@@ -64,7 +64,7 @@ def load_model(args):
             # "utils/models/saved_models/classifier/test.pth"
             # "/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
     else:
-        if args.detection_checkpoint_path:
+        if args.detection_ckpt:
             checkpoint_path = args.detection_checkpoint_path
         else:
             checkpoint_path = "_save/detection/TEST"
@@ -78,19 +78,24 @@ def load_model(args):
         args.data_in = checkpoint['dataset']
 
     args.model = checkpoint['model_name']
-    #args.epochs = checkpoint['epoch']
     args.method = checkpoint['loss']
+    args.num_classes = checkpoint['num_classes'] # 10 or 100
+
     args.image_size = checkpoint['image_size']
-    args.n_cls = checkpoint['num_classes']
-    args.batch_size = checkpoint['batch_size']
-    #args.lr = checkpoint['lr']
+    args.batch_size = checkpoint['batch_size'] # 64
+    args.patch_size = checkpoint['patch_size'] # 16
 
+    args.emb_dim = checkpoint['emb_dim'] # 768
+    args.mlp_dim = checkpoint['mlp_dim'] # 3072
+    args.num_heads = checkpoint['num_heads'] # 12
+    args.num_layers = checkpoint['num_layers'] # 12
+    args.attn_dropout_rate = checkpoint['attn_dropout_rate']
+    args.dropout_rate = checkpoint['dropout_rate']
 
-    #state_dict = torch.nn.Module.load_state_dict("")
     for key in list(checkpoint['model_state_dict'].keys()):
         checkpoint['model_state_dict'][key.replace('module.', '')] = checkpoint['model_state_dict'].pop(key)
 
-    model = get_model_from_args(args, args.classification_model_name, args.num_classes)
+    model = get_model_from_args(args, args.model, args.num_classes)
     model.load_state_dict(checkpoint['model_state_dict'])
     return model
     
