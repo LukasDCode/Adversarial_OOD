@@ -10,6 +10,7 @@ visualization/__pycache__/
 runs/
 utils/models/saved_models/
 _save/
+saved_models/
 
 # ignore files
 test.py
