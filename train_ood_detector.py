@@ -7,7 +7,7 @@ import utils.store_model
 from utils.get_model import get_model_from_args
 from utils.normalize_image_data import normalize_general_image_data
 from utils.ood_detection.load_data import shuffle_batch_elements
-from ood_detection.load_data import get_mixed_test_dataloader, get_mixed_train_valid_dataloaders
+from utils.load_data import get_mixed_test_dataloader, get_mixed_train_valid_dataloaders
 
 from PGD_Alex import MonotonePGD, MaxConf
 from PGD_Alex import UniformNoiseGenerator, NormalNoiseGenerator, Contraster, DeContraster
