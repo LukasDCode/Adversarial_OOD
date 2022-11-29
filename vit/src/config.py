@@ -45,10 +45,10 @@ def get_train_config():
     parser.add_argument("--dataset", type=str, default='ImageNet', help="dataset for fine-tunning/evaluation")
     parser.add_argument("--num-classes", type=int, default=1000, help="number of classes in dataset")
     parser.add_argument('--model_name', default='vit_base_patch16_224', type=str,
-                        help="ViT pre-trained model type")
+                        help="ViT pretrained model type")
     parser.add_argument('--eval', action='store_true',help='evaluate on dataset')
     parser.add_argument('--opt', default='SGD', type=str, choices=('AdamW', 'SGD'))
-    parser.add_argument('--save_freq', type=int, default=50, help='save frequency')
+    parser.add_argument('--save_freq', type=int, default=50, help='_save frequency')
 
     # * Mixup params
     parser.add_argument('--smoothing', type=float, default=0.0, help='Label smoothing (default: 0)') # later we can try it wd >0
@@ -84,7 +84,9 @@ def get_train_config():
 
     # model config
     config = eval("get_{}_config".format(config.model_arch))(config)
-    process_config(config)
+
+    #CHANGE comment out storing config in directory, only printing is left in
+    #process_config(config)
     print_config(config)
     return config
 
