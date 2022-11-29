@@ -7,6 +7,10 @@ All required packages are frozen in the requirements.txt file.
 pip install -r requirements.txt
 ```
 
+#### Datasets
+Please download the Cifar10, Cifar100 and SVHN datasets  
+and place them in their respective directory in the ```data``` folder.
+
 # Usage
 
 ## Train a Vision Transformer Classifier
