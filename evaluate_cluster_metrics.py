@@ -26,8 +26,8 @@ def parse_option():
     # fixme move default ckpt to param
     parser = argparse.ArgumentParser(description='PyTorch code: Mahalanobis detector')
 
-    parser.add_argument('--default_path', type=str, default= '/data/p.sinhamahapatra/PycharmProjects/contrastive_ood/save/SimCLR/cifar10_models/SimCLR_cifar10_resnet50_lr_0.5_dist_Cosine_decay_0.0001_bsz_2048_temp_0.5_trial_11_cosine_warm/',
-                        help = 'path to pre-trained model')
+    parser.add_argument('--default_path', type=str, default= '/data/p.sinhamahapatra/PycharmProjects/contrastive_ood/_save/SimCLR/cifar10_models/SimCLR_cifar10_resnet50_lr_0.5_dist_Cosine_decay_0.0001_bsz_2048_temp_0.5_trial_11_cosine_warm/',
+                        help = 'path to pretrained model')
 
     parser.add_argument('--batch_size', type=int, default=32, metavar='N', help='batch size for data loader')
     parser.add_argument('--dataset', default='cifar10', required=False, help='cifar10 | cifar100 | svhn')
@@ -38,7 +38,7 @@ def parse_option():
     parser.add_argument('--net_type', default='wide_resnet50_3', choices=['resnet18','resnet34','resnet50', 'resnet101','resnet200', 'wide_resnet50_3'],
                         help='resnet50')
     parser.add_argument('--gpu', type=int, default=0, help='gpu index')
-    parser.add_argument('--ckpt', type=str, default=None, help='path to checkpoints of pre-trained model')
+    parser.add_argument('--ckpt', type=str, default=None, help='path to checkpoints of pretrained model')
     parser.add_argument('--ood_select', type=bool, default=False,
                         help='True when particular OOD classes are included in OOD data')
     parser.add_argument('--pred_indist_lbl', type=bool, default=False, help='True when labels for in distribution samples are predicted based on argmin')
@@ -54,7 +54,7 @@ def parse_option():
 
     #opt.data_folder = './datasets/'
     """
-    # create and save out file path
+    # create and _save out file path
     opt.outf = opt.outf + opt.net_type + '_' + opt.dataset + '/'
     if not os.path.isdir(opt.outf):
         os.makedirs(opt.outf)
@@ -298,7 +298,7 @@ def eval_cluster_quality(in_list, in_targets, pca_components=pca_components, kme
 
 
 def main(opt):
-    # set the path to pre-trained model and output
+    # set the path to pretrained model and output
     # pre_trained_net = './pre_trained/' + opt.net_type + '_' + opt.dataset + '.pth
     #os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     torch.cuda.manual_seed(100)
@@ -386,7 +386,7 @@ def main(opt):
         save_file = np.asarray(pcc)
         file_name = os.path.join(os.path.dirname(opt.ckpt), 'Pcc-classwise_%s_dist_%s_ood_%s.npy' % (
             dist, opt.epoch, opt.out_dataset))
-        np.save(file_name, save_file)
+        np._save(file_name, save_file)
 
         print('Global Separation:')
         num_samples = 9
@@ -396,7 +396,7 @@ def main(opt):
         print(list(gsc))
         save_file = np.asarray(gsc)
         file_name = os.path.join(os.path.dirname(opt.ckpt), 'GSC-classwise_%s_dist_%s.npy' % (dist, opt.epoch))
-        np.save(file_name, save_file)
+        np._save(file_name, save_file)
 
         print("Silhouette Coefficient: %0.3f" % silhouette_score(X, y, metric=dist, sample_size=in_data))
         sample_silhouette_values = silhouette_samples(X, y)
@@ -407,7 +407,7 @@ def main(opt):
         save_file = np.asarray(means_list)
         #print(list(zip(test_classes_name, means_list)))
         file_name = os.path.join(os.path.dirname(opt.ckpt), 'SC-classwise_%s_dist_%s.npy' % (dist, opt.epoch))
-        np.save(file_name, save_file)
+        np._save(file_name, save_file)
 
         print("Local Purity:")
         max_size_cluster = np.unique(y, return_counts=True)[1].max()
@@ -417,7 +417,7 @@ def main(opt):
         loc_purity = local_purity(X, y, nn=None, num_samples=11)
         save_file = np.asarray(loc_purity)
         file_name = os.path.join(os.path.dirname(opt.ckpt), 'Local-Purity_%s_dist_%s.npy' % (dist, opt.epoch))
-        np.save(file_name, save_file)
+        np._save(file_name, save_file)
         print(loc_purity)
         """
 

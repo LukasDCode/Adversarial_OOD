@@ -2,44 +2,15 @@ from tqdm import tqdm
 import time
 import argparse
 import torch
-import torchvision
 
 import utils.store_model
+from utils.get_model import get_model_from_args
 from utils.normalize_image_data import normalize_general_image_data
 from utils.ood_detection.load_data import shuffle_batch_elements
-from utils.ood_detection.ood_detector import MiniNet, CNN_IBP
 from ood_detection.load_data import get_mixed_test_dataloader, get_mixed_train_valid_dataloaders
-from vit.src.model import VisionTransformer as ViT
 
 from PGD_Alex import MonotonePGD, MaxConf
 from PGD_Alex import UniformNoiseGenerator, NormalNoiseGenerator, Contraster, DeContraster
-
-
-def get_model_from_args(args, model_name, num_classes):
-    if model_name.lower() == "resnet":
-        model = torchvision.models.resnet18(pretrained=False, num_classes=num_classes).to(device=args.device) # cuda()
-    elif model_name.lower() == "vit":
-        #"""
-        model = ViT(image_size=(args.img_size, args.img_size),  # 224,224
-                    num_heads=args.num_heads, #12 #also a very small amount of heads to speed up training
-                    num_layers=args.num_layers,  # 12 # 5 is a very small vit model
-                    num_classes=num_classes,  # 2 for OOD detection, 10 or more for classification
-                    contrastive=False,
-                    timm=True).to(device=args.device) # cuda()
-        """
-        feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224")
-        model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
-        inputs = feature_extractor(image, return_tensors="pt")
-        """
-    elif model_name.lower() == "cnn_ibp":
-        #TODO currently not working, throwing error
-        #"RuntimeError: mat1 dim 1 must match mat2 dim 0"
-        model = CNN_IBP().to(device=args.device)
-    elif model_name.lower() == "mininet":
-        model = MiniNet().to(device=args.device)
-    else:
-        raise ValueError("Error - wrong model specified in 'args'")
-    return model
 
 
 def get_noise_from_args(args):
@@ -109,7 +80,7 @@ def train_detector(args, classification_model):
         saved_model_name = args.detector_model_name + "_" + str(args.img_size) + "SupCE_ID" + args.data_id + "_OOD"\
                            + args.data_ood + "_bs" + str(args.batch_size) + "_lr" + str(args.lr).strip(".") + "_epochs"\
                            + str(args.epochs) + "_" + str(int(time.time())) + ".pth"
-        #torch.save(detector_model.state_dict(), model_path+saved_model_name)
+        #torch._save(detector_model.state_dict(), model_path+saved_model_name)
         torch.save({
             'model_name': args.detector_model_name,
             'img_size': args.img_size,
@@ -229,9 +200,9 @@ def parse_args():
     parser.add_argument('--detector_model_name', type=str, default="vit",
                         help='str - what model should be used to detect id vs ood "vit", "resnet", "mininet" or "cnn_ibp"')
     parser.add_argument('--class_ckpt', type=str,
-                        default="/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth",
+                        default="/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth",
                         help='str - path of pretrained model checkpoint')
-    parser.add_argument('--det_ckpt', type=str, default="/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth", help='str - path of pretrained model checkpoint')
+    parser.add_argument('--det_ckpt', type=str, default="/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth", help='str - path of pretrained model checkpoint')
     parser.add_argument('--device', type=str, default="cuda", help='str - cpu or cuda to calculate the tensors on')
     parser.add_argument('--data_id', type=str, default="cifar10", help='str - the in-distribution dataset "cifar10", "cifar100" or "svhn"')
     parser.add_argument('--data_ood', type=str, default="svhn", help='str - the out-distribution dataset "cifar10", "cifar100" or "svhn"')
@@ -259,7 +230,7 @@ def parse_args():
     # boolean parameters, false until the flag is set --> then true
     parser.add_argument('--visualize', action='store_true', help='flag to store the original & perturbed images and the attention maps as png files')
     parser.add_argument('--test', action='store_true', help='flag to set testing to true and test a model')
-    parser.add_argument('--save_model', action='store_true', help='flag to save the model if it is being finished training')
+    parser.add_argument('--save_model', action='store_true', help='flag to _save the model if it is being finished training')
 
     return parser.parse_args()
 

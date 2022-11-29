@@ -4,7 +4,7 @@
 # # Visualization of VIT classification
 # 
 # In this notebook, we show-case how to:
-# * use the pre-trained models that we provide to make classifications
+# * use the pretrained models that we provide to make classifications
 # * visualize the attentions of the model to gain insights on the way it sees the images.
 
 # ## Preliminaries
@@ -53,7 +53,7 @@ image_size= 224
 num_heads= 12
 num_layers= 12
 num_classes= 10 if dataset=='cifar10' else 30
-ckpt = '/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth'
+ckpt = '/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth'
 
 
 # In[4]:
@@ -120,7 +120,7 @@ def plot_results(pil_img, prob, boxes):
     plt.show()
 
 
-# # Detection - using a pre-trained model from TorchHub
+# # Detection - using a pretrained model from TorchHub
 # 
 # In this section, we show-case how to load a model from existing checkpoint, run it on a custom image, and print the result.
 # Here we load the simplest of vit-160) for fast inference.

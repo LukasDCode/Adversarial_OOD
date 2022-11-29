@@ -35,9 +35,9 @@ def parse_option():
     parser.add_argument('--print_freq', type=int, default=50,
                         help='print frequency')
     parser.add_argument('--save_freq', type=int, default=100,
-                        help='save frequency')
+                        help='_save frequency')
     parser.add_argument('--save_t_SNE', type=int, default=1,
-                        help='save frequency')
+                        help='_save frequency')
     parser.add_argument('--batch_size', type=int, default=512,
                         help='batch_size')
     parser.add_argument('--num_workers', type=int, default=32,
@@ -97,16 +97,16 @@ def parse_option():
                         help='validate out of distribution')
     parser.add_argument('--ood_two_cls_vis', action='store_true',
                         help='visualization of two class(near, far) in ood')
-    parser.add_argument('--ckpt', type=str, default='/home/poulami/PycharmProjects/contrastive_ood/save/SimCLR/SimCLR_cifar10_wide_resnet50_3_lr_1.0_decay_1e-06_bsz_2048_temp_0.07_trial_2_cosine_warm/ckpt_epoch_1000.pth',
-                        help='path to pre-trained model')
-    parser.add_argument('--cl_save_folder', type=str, default=None, help='path to save classifier ckpt should be saved in ckpt folder')
+    parser.add_argument('--ckpt', type=str, default='/home/poulami/PycharmProjects/contrastive_ood/_save/SimCLR/SimCLR_cifar10_wide_resnet50_3_lr_1.0_decay_1e-06_bsz_2048_temp_0.07_trial_2_cosine_warm/ckpt_epoch_1000.pth',
+                        help='path to pretrained model')
+    parser.add_argument('--cl_save_folder', type=str, default=None, help='path to _save classifier ckpt should be saved in ckpt folder')
 
     opt = parser.parse_args()
 
     # set the path according to the environment
     opt.data_folder = './datasets/'
 
-    opt.tb_path = './save/Main_Linear/{}_tensorboard'.format(os.path.dirname(opt.ckpt).split('/')[-1])
+    opt.tb_path = './_save/Main_Linear/{}_tensorboard'.format(os.path.dirname(opt.ckpt).split('/')[-1])
     if opt.cl_save_folder is None:
         opt.cl_save_folder = os.path.dirname(opt.ckpt)
         print('data will be saved in : ',opt.cl_save_folder)

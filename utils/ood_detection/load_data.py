@@ -15,7 +15,7 @@ def get_cifar10_train_valid_dataloader(args):
         model_name = args.detector_model_name
     else:
         model_name = args.classification_model_name
-    transform = get_transform(train=False, image_size=args.img_size, dataset='cifar10', network=model_name)
+    transform = get_transform(train=False, image_size=args.image_size, dataset='cifar10', network=model_name)
     dataset_train = datasets.CIFAR10(root='/home-local/koner/lukas/Adversarial_OOD/data/cifar10/', train=True, download=True, transform=transform)
     dataset_train, dataset_valid = split_test_valid_dataset(dataset_train)
     return create_dataloader_from_dataset(args, dataset_train), create_dataloader_from_dataset(args, dataset_valid)
@@ -26,7 +26,7 @@ def get_cifar10_test_dataloader(args):
         model_name = args.detector_model_name
     else:
         model_name = args.classification_model_name
-    transform = get_transform(train=False, image_size=args.img_size, dataset='cifar10', network=model_name)
+    transform = get_transform(train=False, image_size=args.image_size, dataset='cifar10', network=model_name)
     dataset_test = datasets.CIFAR10(root='/home-local/koner/lukas/Adversarial_OOD/data/cifar10/', train=False, download=True, transform=transform)
     return create_dataloader_from_dataset(args, dataset_test)
 
@@ -36,7 +36,7 @@ def get_cifar100_train_valid_dataloader(args):
         model_name = args.detector_model_name
     else:
         model_name = args.classification_model_name
-    transform = get_transform(train=True, image_size=args.img_size, dataset='cifar100', network=model_name)
+    transform = get_transform(train=True, image_size=args.img_image_sizesize, dataset='cifar100', network=model_name)
     dataset_train = datasets.CIFAR100(root='/home-local/koner/lukas/Adversarial_OOD/data/cifar100/', train=True, download=True, transform=transform)
     dataset_train, dataset_valid = split_test_valid_dataset(dataset_train)
     return create_dataloader_from_dataset(args, dataset_train), create_dataloader_from_dataset(args, dataset_valid)
@@ -48,14 +48,14 @@ def get_cifar100_test_dataloader(args):
         model_name = args.detector_model_name
     else:
         model_name = args.classification_model_name
-    transform = get_transform(train=False, image_size=args.img_size, dataset='cifar100', network=model_name)
+    transform = get_transform(train=False, image_size=args.image_size, dataset='cifar100', network=model_name)
     dataset_test = datasets.CIFAR100(root='/home-local/koner/lukas/Adversarial_OOD/data/cifar100/', train=False, download=True, transform=transform)
     return create_dataloader_from_dataset(args, dataset_test)
 
 
 def get_SVHN_train_valid_dataloader(args):
     transform = transforms.Compose([
-        transforms.Resize((args.img_size, args.img_size)),
+        transforms.Resize((args.image_size, args.image_size)),
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,), )
     ])
@@ -69,7 +69,7 @@ def get_SVHN_train_valid_dataloader(args):
 
 def get_SVHN_test_dataloader(args):
     transform = transforms.Compose([
-        transforms.Resize((args.img_size, args.img_size)),
+        transforms.Resize((args.image_size, args.image_size)),
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,), )
     ])

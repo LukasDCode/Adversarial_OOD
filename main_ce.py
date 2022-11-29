@@ -37,7 +37,7 @@ def parse_option():
     parser.add_argument('--print_freq', type=int, default=100,
                         help='print frequency')
     parser.add_argument('--save_freq', type=int, default=50,
-                        help='save frequency')
+                        help='_save frequency')
     parser.add_argument('--batch_size', type=int, default=256,
                         help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8,
@@ -95,8 +95,8 @@ def parse_option():
 
     # set the path according to the environment
     #opt.data_folder = './datasets/'
-    opt.model_path = opt.root_folder + '/save/SupCE/{}_models'.format(opt.dataset)
-    opt.tb_path = opt.root_folder + '/save/SupCE/{}_tensorboard'.format(opt.dataset)
+    opt.model_path = opt.root_folder + '/_save/SupCE/{}_models'.format(opt.dataset)
+    opt.tb_path = opt.root_folder + '/_save/SupCE/{}_tensorboard'.format(opt.dataset)
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -448,7 +448,7 @@ def main():
 
 
 
-    # save the last model
+    # _save the last model
     # save_file = os.path.join(
     #     opt.save_folder, 'last.pth')
     # save_model(model, optimizer, opt, opt.epochs, save_file)

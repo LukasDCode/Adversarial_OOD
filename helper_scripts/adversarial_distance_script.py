@@ -4,7 +4,7 @@
 # # Visualization of VIT classification
 # 
 # In this notebook, we show-case how to:
-# * use the pre-trained models that we provide to make classifications
+# * use the pretrained models that we provide to make classifications
 # * visualize the attentions of the model to gain insights on the way it sees the images.
 
 # ## Preliminaries
@@ -63,7 +63,7 @@ if dataset == 'cifar10':
     num_layers= 12
     f_map_size = 14 # = 224/16 = image_size / patch_size
     num_classes = 10
-    ckpt = '/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth'
+    ckpt = '/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth'
     classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
     # home/wiss/ and contrastive_ood do not exist anymore
@@ -78,7 +78,7 @@ elif dataset == 'cifar100':
     num_layers= 12
     f_map_size = 14 # = 224/16 = image_size / patch_size
     num_classes = 100
-    ckpt = '/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCon_cifar100_bs928_lr0.01_wd1e-05_temp_0.1_wdbothCE_SupCon/checkpoints/ckpt_epoch_100.pth'
+    ckpt = '/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCon_cifar100_bs928_lr0.01_wd1e-05_temp_0.1_wdbothCE_SupCon/checkpoints/ckpt_epoch_100.pth'
     classes = [    
             "beaver", "dolphin", "otter", "seal", "whale",
             "aquarium fish", "flatfish", "ray", "shark", "trout",
@@ -113,7 +113,7 @@ elif dataset == 'im30':
     num_layers= 12
     f_map_size = 10 # = 160/16 = image_size / patch_size
     num_classes = 30
-    ckpt = '/nfs/data3/koner/contrastive_ood/save/vit/vit_160_alb_im30_SupCE_ImageNet_bs256_lr0.01_wd1e-05_temp_0.1_210425_005746/checkpoints/ckpt_epoch_30.pth'
+    ckpt = '/nfs/data3/koner/contrastive_ood/_save/vit/vit_160_alb_im30_SupCE_ImageNet_bs256_lr0.01_wd1e-05_temp_0.1_210425_005746/checkpoints/ckpt_epoch_30.pth'
     classes = ['acorn', 'airliner', 'ambulance', 'american_alligator', 'banjo', 'barn', 'bikini', 'digital_clock',
                 'dragonfly', 'dumbbell', 'forklift', 'goblet', 'grand_piano', 'hotdog', 'hourglass', 'manhole_cover', 'mosque', 'nail',
                 'parking_meter', 'pillow', 'revolver', 'rotary_dial_telephone', 'schooner', 'snowmobile', 'soccer_ball', 'stingray', 'strawberry', 'tank', 'toaster', 'volcano']
@@ -185,7 +185,7 @@ def plot_results(pil_img, prob, boxes):
     plt.show()
 
 
-# # Detection - using a pre-trained model from TorchHub
+# # Detection - using a pretrained model from TorchHub
 # 
 # In this section, we show-case how to load a model from existing checkpoint, run it on a custom image, and print the result.
 # Here we load the simplest of vit-160) for fast inference.
@@ -341,7 +341,7 @@ def iterate_over_entire_dataset(directory):
 # In[13]:
 
 
-# save pickle into file for imagenet
+# _save pickle into file for imagenet
 pickle_file_path = '/home-local/koner/lukas/Adversarial_OOD/data/'
 pickle_file_name = 'cifar10_train_centroids.pickle'
 #with open(pickle_file_path + pickle_file_name, 'wb') as handle:
@@ -362,7 +362,7 @@ pickle_file_name = 'cifar10_train_centroids.pickle'
 # In[15]:
 
 
-# save pickle into file for imagenet
+# _save pickle into file for imagenet
 pickle_file_path = '/home-local/koner/lukas/Adversarial_OOD/data/'
 pickle_file_name_test = 'cifar10_test_centroids.pickle'
 #with open(pickle_file_path + pickle_file_name_test, 'wb') as handle:

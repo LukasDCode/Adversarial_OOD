@@ -39,9 +39,9 @@ def parse_option():
     parser.add_argument('--print_freq', type=int, default=50,
                         help='print frequency')
     parser.add_argument('--save_freq', type=int, default=100,
-                        help='save frequency')
+                        help='_save frequency')
     parser.add_argument('--save_t_SNE', type=int, default=1000,
-                        help='save frequency')
+                        help='_save frequency')
     parser.add_argument('--batch_size', type=int, default=32,
                         help='batch_size')
     parser.add_argument('--num_workers', type=int, default=32,
@@ -102,11 +102,11 @@ def parse_option():
     parser.add_argument('--ood_two_cls_vis', action='store_true',
                         help='visualization of two class(near, far) in ood')
     parser.add_argument('--ckpt', type=str, default=None,
-                        help='path to pre-trained model')
+                        help='path to pretrained model')
     parser.add_argument('--ckpt_cl', type=str,
-                        #default='./save/SupCon/cifar10_models/SupCon_cifar10_resnet50_lr_0.5_decay_0.0001_bsz_512_temp_0.1_trial_0_cosine_warm/ckpt_cl_epoch_1.pth',
+                        #default='./_save/SupCon/cifar10_models/SupCon_cifar10_resnet50_lr_0.5_decay_0.0001_bsz_512_temp_0.1_trial_0_cosine_warm/ckpt_cl_epoch_1.pth',
                         help='for testing model wd full params')
-    parser.add_argument('--cl_save_folder', type=str, default=None, help='path to save classifier ckpt should be saved in ckpt folder')
+    parser.add_argument('--cl_save_folder', type=str, default=None, help='path to _save classifier ckpt should be saved in ckpt folder')
     parser.add_argument("--model_arch", type=str, default="b16", help='model setting to use',
                         choices=['b16', 'b32', 'l16', 'l32', 'h14'])
     parser.add_argument("--image-size", type=int, default=32, help="input image size", choices=[32, 48, 96, 224, 384])
@@ -123,7 +123,7 @@ def parse_option():
     # set the path according to the environment
     #opt.data_folder = './datasets/'
 
-    #opt.tb_path = './save/Main_Linear/{}_tensorboard'.format(os.path.dirname(opt.ckpt).split('/')[-1])
+    #opt.tb_path = './_save/Main_Linear/{}_tensorboard'.format(os.path.dirname(opt.ckpt).split('/')[-1])
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -531,7 +531,7 @@ def main(opt, best_accuracy=None):
             writer.add_scalar('linear_val_loss', loss, epoch)
             writer.add_scalar('linear_val_acc', val_acc, epoch)
             writer.add_scalar('linear_val_loss', val_loss, epoch)
-            # save features after every 100 epoch
+            # _save features after every 100 epoch
 
             if epoch % opt.save_freq == 0:
                 # saving re-trained model activations
@@ -560,9 +560,9 @@ if __name__ == '__main__':
 
     if opt.test_contrastive_acc:
         checkpoints = [
-            '/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints',
-            #"/data/p.sinhamahapatra/PycharmProjects/contrastive_ood/save/SimCLR/cifar100_models/SimCLR_cifar100_resnet50_lr_0.5_dist_Cosine_decay_0.0001_bsz_512_temp_0.5_trial_11_cosine_warm/",
-            #'/data/p.sinhamahapatra/PycharmProjects/contrastive_ood/save/SimCLR/cifar10_models/SimCLR_cifar10_resnet50_lr_0.5_dist_Cosine_decay_0.0001_bsz_2048_temp_0.5_trial_11_cosine_warm/'
+            '/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints',
+            #"/data/p.sinhamahapatra/PycharmProjects/contrastive_ood/_save/SimCLR/cifar100_models/SimCLR_cifar100_resnet50_lr_0.5_dist_Cosine_decay_0.0001_bsz_512_temp_0.5_trial_11_cosine_warm/",
+            #'/data/p.sinhamahapatra/PycharmProjects/contrastive_ood/_save/SimCLR/cifar10_models/SimCLR_cifar10_resnet50_lr_0.5_dist_Cosine_decay_0.0001_bsz_2048_temp_0.5_trial_11_cosine_warm/'
           ]
 
         opt.epochs = 10

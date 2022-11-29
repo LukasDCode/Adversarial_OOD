@@ -36,7 +36,7 @@ def parse_option():
                         help='resnet50')
     parser.add_argument('--gpu', type=int, default=0, help='gpu index')
     parser.add_argument('--use_train', action='store_true', help='use training data for auroc')
-    parser.add_argument('--ckpt', type=str, default=None, help='path to pre-trained model')
+    parser.add_argument('--ckpt', type=str, default=None, help='path to pretrained model')
     parser.add_argument('--ood_select', type=bool, default=False,
                         help='True when particular OOD classes are included in OOD data')
     parser.add_argument('--pred_indist_lbl', type=bool, default=False, help='True when labels for in distribution samples are predicted based on argmin')
@@ -70,7 +70,7 @@ def parse_option():
         # model config
         opt = eval("get_{}_config".format(opt.model_arch))(opt)
 
-    # create and save out file path
+    # create and _save out file path
     # opt.outf = opt.ckpt + '/' + opt.model + '_' + opt.dataset + '/'
     # if not os.path.isdir(opt.outf):
     #     os.makedirs(opt.outf)
@@ -332,7 +332,7 @@ def main(opt, cache=None, eval_over_time_pkl=None):
     """
     classes_mean = torch.stack([torch.mean(cls_feats, dim=0) for cls_feats in classes_feats],dim=0)
     if opt.dataset=="ImageNet" and opt.num_classes==1000:
-        # save pickle into file for imagenet
+        # _save pickle into file for imagenet
         open_file = open('./im_cls_mn_vit_b16', "wb")
         pickle.dump(classes_mean, open_file)
         open_file.close()
@@ -406,7 +406,7 @@ def main(opt, cache=None, eval_over_time_pkl=None):
         # return train_cache
 
         # now stack score and lbl both for in and out
-        # save format (distance socre, pred cls lbl, true cls lbl,  in/out dist len)
+        # _save format (distance socre, pred cls lbl, true cls lbl,  in/out dist len)
         if opt.pred_indist_lbl:
             in_data_full = np.stack(
                 (in_score, train_classes_name[in_dist_lbl], train_classes_name[id_labels], np.ones(len(in_score))),
@@ -435,7 +435,7 @@ def main(opt, cache=None, eval_over_time_pkl=None):
             else:
                 file_name = os.path.join(os.path.dirname(opt.ckpt), '%s_%s_%s_GT_%s.npy' % (
                 opt.distance, opt.out_dataset, opt.ckpt.split('_')[-1].split('.')[-2], opt.in_dtype))
-            print('Now concat both in and out distribution and save in ', file_name)
+            print('Now concat both in and out distribution and _save in ', file_name)
             np.save(file_name, in_out_data)
 
             eval_files.append(file_name)
@@ -466,7 +466,7 @@ def main(opt, cache=None, eval_over_time_pkl=None):
             #     save_file = np.asarray(pcc)
             #     file_name = os.path.join(os.path.dirname(opt.ckpt), 'Pcc-classwise_%s_dist_%s_ood_%s.npy' % (
             #         dist_metric, opt.epoch, opt.out_dataset))
-            #     np.save(file_name, save_file)
+            #     np._save(file_name, save_file)
             #
             #     print('Global Separation:')
             #     num_samples = 9
@@ -475,7 +475,7 @@ def main(opt, cache=None, eval_over_time_pkl=None):
             #     print(list(gsc))
             #     save_file = np.asarray(gsc)
             #     file_name = os.path.join(os.path.dirname(opt.ckpt), 'GSC-classwise_%s_dist_%s.npy' % (dist_metric, opt.epoch))
-            #     np.save(file_name, save_file)
+            #     np._save(file_name, save_file)
             #
             #
             # ## calculating silhouette coefficient on in-distribution test labels
@@ -562,8 +562,8 @@ def model_arch(opt, ckpt_path):
     return opt
 
 def run_ood_distance(opt):
-    root_dir = '/nfs/data3/koner/contrastive_ood/save'#''#/vit
-    root_vit = 'experiments/save'
+    root_dir = "/home-local/koner/lukas/Adversarial_OOD/experiments/_save" # '/nfs/data3/koner/contrastive_ood/_save'#''#/vit
+    root_vit = 'experiments/_save'
     ckpt_list = ['supce_weight/vit_b16_224','supce_weight/deit_b16_224','supce_weight/deit_t16_224','supce_weight/deit_s16_224',
         #''vit_224SupCE_SupCE_cifar10_b16_bs256_lr0.01_wd1e-05_temp_0.1_210622_002955',
         # 'deit_224_SupCE_cifar10_s16_bs256_lr0.01_wd1e-05_temp_0.1_210531_070807',

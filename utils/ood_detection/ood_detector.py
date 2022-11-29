@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import utils.models.modules_ibp as modules_ibp
+import utils.modules_ibp as modules_ibp
 
 # PyTorch models inherit from torch.nn.Module
 class MiniNet(nn.Module):
@@ -67,7 +67,7 @@ class CNN_IBP(nn.Module):
         self.A3 = modules_ibp.ReLUI()
         self.pool = modules_ibp.AvgPool2dI(2)
         self.F = modules_ibp.FlattenI()
-        self.L4 = modules_ibp.LinearI(256 * self.width * (self.hw//4)**2, 128)
+        self.L4 = modules_ibp.LinearI(256 * self.width * (self.hw // 4) ** 2, 128)
         self.A4 = modules_ibp.ReLUI()
         self.L5 = last_layer_type(128, self.num_classes)
         self.L4.name = "L4"

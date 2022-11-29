@@ -18,7 +18,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Run the monotone PGD attack on a batch of images, default is with ViT and the MPGD of Alex, where cifar10 is ID and cifar100 is OOD')
 
     parser.add_argument('--model', type=str, default="vit", help='str - what model should be used for the attack')
-    parser.add_argument('--ckpt', type=str, default="/nfs/data3/koner/contrastive_ood/save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth", help='str - path of pretrained model checkpoint')
+    parser.add_argument('--ckpt', type=str, default="/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth", help='str - path of pretrained model checkpoint')
     parser.add_argument('--device', type=str, default="cpu", help='str - cpu or cuda to calculate the tensors on')
     parser.add_argument('--in_dataset', type=str, default="cifar10", help='str - the in-distribution dataset (currently only cifar10)')
     parser.add_argument('--out_dataset', type=str, default="cifar100", help='str - the out-distribution dataset (currently only cifar100)')

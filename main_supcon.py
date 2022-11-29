@@ -17,8 +17,8 @@ from torchvision import transforms, datasets
 from util import TwoCropTransform, AverageMeter
 from main_ce import set_loader as set_val_loader
 from util import adjust_learning_rate, warmup_learning_rate, accuracy
-from util import set_optimizer, save_model
-from utils.store_model import save_model, load_model
+from util import set_optimizer
+from utils.store_model import save_model
 from networks.resnet_big import SupConResNet, LinearClassifier
 from losses import SupConLoss
 from parallel import DataParallelModel, DataParallelCriterion
@@ -46,73 +46,52 @@ import os
 def parse_option():
     parser = argparse.ArgumentParser('argument for training')
 
-    parser.add_argument('--print_freq', type=int, default=100,
-                        help='print frequency')
-    parser.add_argument('--batch_size', type=int, default=2048,
-                        help='batch_size')
-    parser.add_argument('--num_workers', type=int, default=16,
-                        help='num of workers to use')
-    parser.add_argument('--epochs', type=int, default=700,
-                        help='number of training epochs')
-    parser.add_argument('--val_freq', type=int, default=50,
-                        help='number of epochs after which validation is done/model saved')
+    parser.add_argument('--print_freq', type=int, default=100, help='print frequency')
+    parser.add_argument('--batch_size', type=int, default=2048, help='batch_size')
+    parser.add_argument('--num_workers', type=int, default=16, help='num of workers to use')
+    parser.add_argument('--epochs', type=int, default=700, help='number of training epochs')
+    parser.add_argument('--val_freq', type=int, default=50, help='number of epochs after which validation is done/model saved')
 
     # optimization
-    parser.add_argument('--optimizer', type=str, default='SGD',    # CT with simclr default with 'LARS' optimizer, momentum 0.9 and weight decay 1e-6 and initial LR 1.0
-                        choices=['LARS', 'SGD', 'RMSprop'], help='optimizer')
-    parser.add_argument('--learning_rate', type=float, default=0.5, # CT with simclr default: 1.0
-                        help='learning rate')
-    parser.add_argument('--lr_decay_epochs', type=str, default='500,700,900',
-                        help='where to decay lr, can be a list')
-    parser.add_argument('--lr_decay_rate', type=float, default=0.1,
-                        help='decay rate for learning rate')
-    parser.add_argument('--weight_decay', type=float, default=1e-4, # CT with simclr default: 1e-6
-                        help='weight decay')
-    parser.add_argument('--momentum', type=float, default=0.9,     # CT with simclr default: 0.9
-                        help='momentum')
-    parser.add_argument('--reduce_lr', type=float, default=0.0,     #todo donot change this for contrastive training, 0 ignores reduce_lr
-                        help='reduce learning rate for detector')
+    parser.add_argument('--optimizer', type=str, default='SGD', choices=['LARS', 'SGD', 'RMSprop'], help='optimizer') # CT with simclr default with 'LARS' optimizer, momentum 0.9 and weight decay 1e-6 and initial LR 1.0
+    parser.add_argument('--learning_rate', type=float, default=0.5, help='learning rate') # CT with simclr default: 1.0
+    parser.add_argument('--lr_decay_epochs', type=str, default='500,700,900', help='where to decay lr, can be a list')
+    parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
+    parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay') # CT with simclr default: 1e-6
+    parser.add_argument('--momentum', type=float, default=0.9, help='momentum') # CT with simclr default: 0.9
+    parser.add_argument('--reduce_lr', type=float, default=0.0, help='reduce learning rate for detector') # DO NOT change this for contrastive training, 0 ignores reduce_lr
 
     # model dataset
-    parser.add_argument('--model', type=str, default='resnet50',
-                choices=['resnet18','resnet34','resnet50','resnet200', 'wide_resnet50_3', 'vit'], help='network type')
-    parser.add_argument('--dataset', type=str, default='cifar10',
-                        choices=['cifar10', 'cifar100', 'imagenet','imagenet30','stl10'], help='dataset')
+    parser.add_argument('--model', type=str, default='resnet50', choices=['resnet18','resnet34','resnet50','resnet200', 'wide_resnet50_3', 'vit'], help='network type')
+    parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'cifar100', 'imagenet','imagenet30','stl10'], help='dataset')
     parser.add_argument('--use_subset', action='store_true', help='sub set of classes')
 
     # method
-    parser.add_argument('--method', type=str, default='SupCon',
-                        choices=['SupCon', 'SimCLR'], help='choose method')
+    parser.add_argument('--method', type=str, default='SupCon', choices=['SupCon', 'SimCLR'], help='choose method')
     # similarity metric
-    parser.add_argument('--sim_metric', type=str, default='Cosine',
-                        choices=['Cosine', 'Euclidean', 'Mahalanobis'], help='similarity metric used in contrastive loss')
+    parser.add_argument('--sim_metric', type=str, default='Cosine', choices=['Cosine', 'Euclidean', 'Mahalanobis'], help='similarity metric used in contrastive loss')
     # temperature
-    parser.add_argument('--temp', type=float, default=0.1,  # CT with simclr default: 0.1
-                        help='temperature for loss function')
+    parser.add_argument('--temp', type=float, default=0.1, help='temperature for loss function') # CT with simclr default: 0.1
     parser.add_argument('--albumentation', action='store_true', help='use albumentation as data aug')
 
 
     # other setting
-    parser.add_argument('--distributed', action='store_true',
-                        help='using distributed loss calculations across multiple GPUs')
-    parser.add_argument('--cosine', action='store_true',
-                        help='using cosine annealing')
-    parser.add_argument('--syncBN', action='store_true',
-                        help='using synchronized batch normalization')
-    parser.add_argument('--warm', action='store_true',
-                        help='warm-up for large batch training')
-    parser.add_argument('--half', action='store_true',
-                        help='train using half precision')
-    parser.add_argument('--trial', type=str, default='0',
-                        help='id for recording multiple runs')
+    parser.add_argument('--distributed', action='store_true', help='using distributed loss calculations across multiple GPUs')
+    parser.add_argument('--cosine', action='store_true', help='using cosine annealing')
+    parser.add_argument('--syncBN', action='store_true', help='using synchronized batch normalization')
+    parser.add_argument('--warm', action='store_true', help='warm-up for large batch training')
+    parser.add_argument('--half', action='store_true', help='train using half precision')
+    parser.add_argument('--trial', type=str, default='0', help='id for recording multiple runs')
     parser.add_argument('--seed', default=12321, type=int)
     parser.add_argument('--data_folder', default='./datasets/', type=str)
     parser.add_argument('--root_folder', default='.', type=str)
 
     #vit related settings
-    parser.add_argument("--model_arch", type=str, default="b16", help='model setting to use',
-                        choices=['b16', 'b32', 'l16', 'l32', 'h14'])
-    parser.add_argument("--checkpoint-path", type=str, default=None, help="model checkpoint to load weights")
+    parser.add_argument("--model_arch", type=str, default="b16", help='model setting to use', choices=['b16', 'b32', 'l16', 'l32', 'h14'])
+    parser.add_argument("--checkpoint-path", type=str, default="utils/models/saved_models/classifier/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz", help="model checkpoint to load weights") # checkpoint_path
+    # "utils/models/saved_models/classifier/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0.npz"
+    # "utils/models/saved_models/classifier/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz"
+    # "utils/models/saved_models/classifier/pretrained/B_32-i21k-300ep-lr_0.001-aug_medium1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz"
     parser.add_argument("--image-size", type=int, default=32, help="input image size", choices=[32, 48, 96, 224, 384, 160])
     parser.add_argument("--train-steps", type=int, default=10000, help="number of training/fine-tunning steps")
 
@@ -126,8 +105,8 @@ def parse_option():
 
     # set the path according to the environment
     #opt.data_folder = './datasets/'
-    opt.model_path = opt.root_folder + '/save/classification/{}/{}_models'.format(opt.method, opt.dataset)
-    opt.tb_path = opt.root_folder + '/save/classification/{}/{}_tensorboard'.format(opt.method, opt.dataset)
+    opt.model_path = opt.root_folder + '/_save/classification/{}/{}_models'.format(opt.method, opt.dataset)
+    opt.tb_path = opt.root_folder + '/_save/classification/{}/{}_tensorboard'.format(opt.method, opt.dataset)
 
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -297,25 +276,29 @@ def set_loader(opt):
 
 def set_model(opt):
     if opt.model=='vit':
-        model = ViT(image_size=(opt.image_size, opt.image_size),
-             patch_size=(opt.patch_size, opt.patch_size),
-             emb_dim=opt.emb_dim,
-             mlp_dim=opt.mlp_dim,
-             num_heads=opt.num_heads,
-             num_layers=opt.num_layers,
-             num_classes=opt.n_cls,
-             attn_dropout_rate=opt.attn_dropout_rate,
-             dropout_rate=opt.dropout_rate)
+        model = ViT(
+            image_size=(opt.image_size, opt.image_size),
+            patch_size=(opt.patch_size, opt.patch_size),
+            emb_dim=opt.emb_dim,
+            mlp_dim=opt.mlp_dim,
+            num_heads=opt.num_heads,
+            num_layers=opt.num_layers,
+            num_classes=opt.n_cls,
+            attn_dropout_rate=opt.attn_dropout_rate,
+            dropout_rate=opt.dropout_rate,
+            contrastive=False, #added
+            timm=True
+        ) #added
     else:
         model = SupConResNet(name=opt.model)
 
     if opt.checkpoint_path != None:
-        state_dict = load_checkpoint(opt.checkpoint_path, new_img=opt.image_size, patch=opt.patch_size)
-        if opt.n_cls != state_dict['classifier.weight'].size(0):
+        state_dict = load_checkpoint(opt.checkpoint_path, new_img=opt.image_size, patch=opt.patch_size, layers=opt.num_layers, emb_dim=opt.emb_dim)
+        if opt.n_cls != state_dict['classifier.weight'].size(0): # for cifar10 both should be 10
             del state_dict['classifier.weight']
             del state_dict['classifier.bias']
             print("re-initialize fc layer")
-            model.load_state_dict(state_dict, strict=False)
+            model.load_state_dict(state_dict) # strict=False
         else:
             model.load_state_dict(state_dict)
         print("Load pretrained weights from {}".format(opt.checkpoint_path))
@@ -385,6 +368,7 @@ def train(train_loader, model, criterion, optimizer, epoch, opt):
         else:
             images = torch.cat([images[0], images[1]], dim=0)  # .to(device)
         images = images.cuda(non_blocking=True)
+        images.requires_grad = True
         labels = labels.cuda(non_blocking=True)
         bsz = labels.shape[0]
 
@@ -396,9 +380,15 @@ def train(train_loader, model, criterion, optimizer, epoch, opt):
 
         # CHANGE 2nd part of tuple gets discarded
         # images = 2*batch_size, 3, img_size, img_size
-        features, _ = model(images) # features = 2*batch_size, 128
+        features = model(images, feat_cls=True) # features = tuple([2*batch_size, 128], [128, num_classes])
         # 0: contrastive features with 2* batch_size and 128 features --> gets further used
         # 1: actual model output of batch_size * num_classes --> discarded
+
+
+
+        if isinstance(features, tuple):
+            features, _ = features
+        features.requires_grad = True
 
         f1, f2 = torch.split(features, [bsz, bsz], dim=0) # f1 = batch_size, 128   f2 = batch_size, 128
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1) # features = batch_size, 2, 128
@@ -410,14 +400,23 @@ def train(train_loader, model, criterion, optimizer, epoch, opt):
             raise ValueError('contrastive method not supported: {}'.
                              format(opt.method))
 
-        # update metric
+        # CHANGE print if inf or nan
         if torch.isinf(loss) or torch.isnan(loss):
-            print("iteration:", idx, "loss:", loss.item())
+            print("epoch:", epoch, "iteration:", idx, "loss:", loss.item(), "<-- this is not a good sign")
+
+        # update metric
         losses.update(loss.item(), bsz)
 
         # SGD
         optimizer.zero_grad()
         loss.backward()
+
+        # CHANGE
+        # Gradient Norm Clipping
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0, norm_type=2)
+        # Gradient Value Clipping
+        #torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)
+
         optimizer.step()
 
         # measure elapsed time
@@ -500,8 +499,8 @@ def main():
             """
 
 
-    # save the last model
-    # save_model(opt, model, optimizer)
+    # _save the last model
+    store_model.save_model(opt, model, optimizer)
 
     #print('best validation accuracy: {:.2f}'.format(global_best_val_acc))
 

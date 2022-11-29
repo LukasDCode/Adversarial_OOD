@@ -9,7 +9,7 @@ def save_img_batch_as_jpgs(image_batch, label_tensor, batch_index, perturbed=Fal
         pil_image = tensor_to_pil_image(image)
 
         # create 100 cifar folders "$ mkdir cifar100_{0..99}
-        #pil_image.save("pgd_visualization/cifar100_" + str(label.item()) + "/" + str(batch_index) + "_" + str(index) + additional_info + ".jpg")
+        #pil_image._save("pgd_visualization/cifar100_" + str(label.item()) + "/" + str(batch_index) + "_" + str(index) + additional_info + ".jpg")
 
         if perturbed:
             # Naming of images: Original Label _ inter batch index _ intra batch index

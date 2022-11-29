@@ -29,7 +29,7 @@ subset_class_order = ['airplane', 'automobile', 'bird', 'cat']
 
 stl10_class_order = ['airplane', 'bird', 'car', 'cat', 'deer', 'dog', 'horse', 'monkey', 'ship', 'truck']
 
-imagenet_class_order = open("./imagenet_classes.txt", "r").read().splitlines()
+imagenet_class_order = open("_imagenet_classes.txt", "r").read().splitlines()
 
 class_list = {'cifar10': cifar10_class_order, 'cifar100': cifar100_class_order, 'ImageNet':im30_class_order,
               'stl10': stl10_class_order, 'ImageNet_orig':imagenet_class_order}#'':

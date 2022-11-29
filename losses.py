@@ -86,7 +86,10 @@ class SupConLoss(nn.Module):
             classes_mean = torch.stack([torch.mean(cls_feats, dim=0) for cls_feats in classes_feats], dim=0)
             sup_inv_cov = [np.linalg.inv(np.cov(cls_feats.cpu().detach().numpy(), rowvar=False)) for cls_feats in classes_feats]
 
+            # CHANGE changed to torch.tensor
             maha_anchor_contrast = - torch.div(mahalanobis(anchor_feature, classes_mean, sup_inv_cov) + eps, self.temperature) ## fixme mismatch between np and tensor variables
+            #maha_anchor_contrast = - torch.div(mahalanobis(anchor_feature, classes_mean, torch.FloatTensor(sup_inv_cov)) + eps, self.temperature)
+
             # for numerical stability
             logits_max, _ = torch.max(maha_anchor_contrast, dim=1, keepdim=True)
             logits = maha_anchor_contrast - logits_max.detach()
@@ -110,7 +113,9 @@ class SupConLoss(nn.Module):
 
         # compute log_prob
         exp_logits = torch.exp(logits) * logits_mask
-        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True))
+        #CHANGE added "+ 1e-6" to the end
+        #log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True))
+        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True) + 1e-6)
 
         # compute mean of log-likelihood over positive
         mean_log_prob_pos = (mask * log_prob).sum(1) / mask.sum(1)
