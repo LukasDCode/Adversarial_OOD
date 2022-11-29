@@ -8,9 +8,11 @@ __pycache__/
 utils/__pycache__/
 visualization/__pycache__/
 runs/
+experiments/
 utils/models/saved_models/
 _save/
 saved_models/
+
 
 # ignore files
 test.py
