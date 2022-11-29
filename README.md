@@ -1,6 +1,57 @@
 # Combination: ViT with monotone PGD attack
 
-## Usage
+## Installation
+
+All required packages are frozen in the requirements.txt file.
+```shell
+pip install -r requirements.txt
+```
+
+# Usage
+
+## Train a Vision Transformer Classifier
+On Cifar10
+```shell
+python train_classifier.py --exp-name train_vit_model_cifar10 --tensorboard --model-arch b16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+```
+
+On Cifar100
+```shell
+python train_classifier.py --exp-name train_vit_model_cifar100 --tensorboard --model-arch b16 --image-size 224 --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+
+```
+
+On SVHN
+```shell
+python train_classifier.py --exp-name train_vit_model_svhn --tensorboard --model-arch b16 --image-size 224 --data-dir data/ --dataset svhn --num-classes 10 --train-steps 2290 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+```
+
+### Test the Classifier
+```shell
+python DO_SOMETHING
+```
+
+
+## Train a OOD Detector Module
+```shell
+python DO_SOMETHING
+```
+
+
+### Test the OOD Detector Module
+```shell
+python DO_SOMETHING
+```
+
+
+## Visualize the results
+```shell
+python DO_SOMETHING
+```
+
+
+
+### Try out the Monotone PGD attack with visualization
 Simply run the default python script, no parameters are necessary:
 ```
 python run_MPGD_attack.py
@@ -11,6 +62,17 @@ This might look like the following:
 python run_MPGD_attack.py --single --eps 0.025 --iterations 25 --visualize
 ```
 
+
+<pre>
+
+
+
+
+
+
+
+
+</pre>
 
 # OODformer: Out-Of-Distribution Detection Transformer
 
