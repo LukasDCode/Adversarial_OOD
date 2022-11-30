@@ -22,11 +22,7 @@ def get_cifar10_train_valid_dataloader(args):
 
 
 def get_cifar10_test_dataloader(args):
-    if args.detector_model_name:
-        model_name = args.detector_model_name
-    else:
-        model_name = args.classification_model_name
-    transform = get_transform(train=False, image_size=args.image_size, dataset='cifar10', network=model_name)
+    transform = get_transform(train=False, image_size=args.image_size, dataset='cifar10', network=args.model)
     dataset_test = datasets.CIFAR10(root='/home-local/koner/lukas/Adversarial_OOD/data/cifar10/', train=False, download=True, transform=transform)
     return create_dataloader_from_dataset(args, dataset_test)
 
@@ -83,8 +79,9 @@ def split_test_valid_dataset(dataset_train):
     train_length = int(len(dataset_train) * 0.9)
     return random_split(dataset_train, [train_length, len(dataset_train)-train_length])
 
+
 def create_dataloader_from_dataset(args, dataset, shuffle=True):
-    return DataLoader(dataset, batch_size=int(args.batch_size / 2), shuffle=shuffle, num_workers=args.workers, pin_memory=True)
+    return DataLoader(dataset, batch_size=args.batch_size, shuffle=shuffle, num_workers=args.num_workers, pin_memory=True)
 
 
 class ConcatDataset(torch.utils.data.Dataset):
