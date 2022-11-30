@@ -38,6 +38,7 @@ def train_epoch(epoch, model, data_loader, criterion, optimizer, lr_scheduler, m
         if head == "both" and contrastive:
             batch_pred, pred_classifier = model(batch_data, not_contrastive_acc = not test_contrastive_acc)
         else:
+            # batch_data values are in range [0;1]
             batch_pred = model(batch_data, not_contrastive_acc=not test_contrastive_acc)
 
         if contrastive:
@@ -186,7 +187,7 @@ def main(config, device, device_ids):
 
     # create dataloader
     config.model = 'vit'
-    # CHANGE dataloader is in capital letters
+    # CHANGE svhn dataloader is in capital letters, later reset to lower case
     if config.dataset == 'svhn': config.dataset = 'SVHN'
     train_dataloader , valid_dataloader = create_dataloaders(config)
     if config.dataset == 'SVHN': config.dataset = 'svhn'
@@ -304,7 +305,7 @@ def main(config, device, device_ids):
 
 def save_vit_model(args, model, optimizer, epoch):
 
-    #CHANGE
+    #CHANGE currently only vit supported
     args.model = "vit"
 
     # Save the model
@@ -359,80 +360,7 @@ def save_vit_model(args, model, optimizer, epoch):
 
 
 if __name__ == '__main__':
-    run_all_variants =  False #todo for running all varint and all the data dataset
-    if run_all_variants:
-        import sys
-        root_dir = '/home-local/koner/lukas/Adversarial_OOD' #'/nfs/data3/koner/data/checkpoints/deit'
-        ckpt_list = ['deit_base_patch16_224-b5f2ef4d.pth',
-                     'deit_small_patch16_224-cd65a155.pth',
-                     'deit_tiny_patch16_224-a1311bcf.pth']
-        dataset_list = ['cifar10', 'cifar100', 'ImageNet']
-        for ckpt in ckpt_list:
-            sys.argv[sys.argv.index('--checkpoint-path') + 1]=os.path.join(root_dir,ckpt)
-            if 'base' in ckpt:
-                sys.argv[sys.argv.index('--model-arch') + 1]='b16'
-            elif 'small' in ckpt:
-                sys.argv[sys.argv.index('--model-arch') + 1] = 's16'
-            else:
-                sys.argv[sys.argv.index('--model-arch') + 1] = 't16'
-            # loop on all dataset
-            for dataset in dataset_list:
-                index_of_ds = sys.argv.index('--dataset')+1
-                index_ds_cls =  sys.argv.index('--num-classes')+1
-                if dataset == 'cifar10':
-                    sys.argv[index_of_ds] = 'cifar10'
-                    sys.argv[index_ds_cls] = str(10)
-                elif dataset == 'cifar100':
-                    sys.argv[index_of_ds] = 'cifar100'
-                    sys.argv[index_ds_cls] = str(100)
-                else:
-                    sys.argv[index_of_ds] = 'ImageNet'
-                    sys.argv[index_ds_cls] = str(30)
-                #Now parse argument
-                config = get_train_config()
-                # device
-                device, device_ids = setup_device(config.n_gpu)
-                if config.dataset=='ImageNet':
-                    config.data_dir = "data/ImageNet30"
-
-                main(config, device, device_ids)
-                config.ckpt = config.checkpoint_dir.rsplit('/',1)[0]
-                config.model='vit';config.batch_size=1024
-                run_ood_distance(config)# now calculate distance
-
-        if config.test_contrastive_acc:
-                print("Setting contrastie loss false as the current mood is to check contrastive accuracy")
-                config.contrastive=False
-                checkpoints = ["checkpoint dir of all desired model"]
-
-                for ckpt in checkpoints:
-                    for root, dirs, files in os.walk(ckpt):
-                        for file in files:
-                            if file.endswith('.pth'):  # for each checkpoint file.startswith('ckpt_epoch') and
-                                config.checkpoint_path = os.path.join(ckpt, file)
-                                print("Evaluating accuracy for ",config.checkpoint_path)
-                                main(config, device, device_ids)
-
-    else:
-        config = get_train_config()
-        # device
-        device, device_ids = setup_device(config.n_gpu)
-
-        if config.test_contrastive_acc:
-            print("Setting contrastie loss false as the current mood is to check contrastive accuracy")
-            config.contrastive = False
-            checkpoints = ["checkpoint dir of all desired model"]
-
-            for ckpt in checkpoints:
-                for root, dirs, files in os.walk(ckpt):
-                    for file in files:
-                        if file.endswith('.pth'):  # for each checkpoint file.startswith('ckpt_epoch') and
-                            config.checkpoint_path = os.path.join(ckpt, file)
-                            print("Evaluating accuracy for ", config.checkpoint_path)
-                            main(config, device, device_ids)
-        else:
-            main(config, device, device_ids)
-    #main()
-
-
+    config = get_train_config()
+    device, device_ids = setup_device(config.n_gpu)
+    main(config, device, device_ids)
 

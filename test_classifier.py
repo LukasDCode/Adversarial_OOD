@@ -1,3 +1,4 @@
+import sys
 import argparse
 from tqdm import tqdm
 import torch
@@ -150,7 +151,6 @@ def test_classifier(args):
     # get a dataloader mixed 50:50 with ID and OOD data and labels of 0 (ID) and 1 (OOD)
     test_dataloader = get_test_dataloader(args)
 
-    print("Start Testing")
     with torch.no_grad():
         model.eval()
         running_test_error = 0
@@ -159,6 +159,7 @@ def test_classifier(args):
             metrics.reset()
 
             inputs, labels = inputs.to(device=args.device), labels.to(device=args.device)
+            """
             if args.dataset.lower() == "cifar10":
                 normalized_inputs = normalize_cifar10_image_data(inputs)
             elif args.dataset.lower() == "cifar100":
@@ -167,7 +168,11 @@ def test_classifier(args):
                 normalized_inputs = normalize_SVHN_image_data(inputs)
             else:
                 normalized_inputs = normalize_general_image_data(inputs)  # no detach because requires gradient
+            # normalized inputs values are in the range [-2;2.2]
             outputs = model(normalized_inputs)
+            """
+
+            outputs = model(inputs)
 
             running_test_error += error_criterion(outputs.squeeze(1), labels)
             if args.device == "cuda": torch.cuda.empty_cache()
@@ -207,7 +212,7 @@ def test_classifier(args):
 
         # Error
         avg_valid_error = running_test_error / (epoch_nr  + 1)
-        print("Old metrics")
+        print("\nOld metrics")
         print("Average Test Error:", avg_valid_error.item())
         print("Finished Testing the Model")
 
@@ -227,6 +232,9 @@ def parse_args():
     parser.add_argument('--model', type=str, default="vit", help='str - what model should be used to classify input samples "vit", "resnet", "mininet" or "cnn_ibp"')
     parser.add_argument('--classification_ckpt', type=str, default=None, help='str - path of pretrained model checkpoint')
     parser.add_argument('--device', type=str, default="cuda", help='str - cpu or cuda to calculate the tensors on')
+    parser.add_argument("--num-workers", type=int, default=8, help="number of workers")
+    parser.add_argument("--n-gpu", type=int, default=2, help="number of gpus to use")
+
     #parser.add_argument('--dataset', type=str, default="cifar10", help='str - the in-distribution dataset "cifar10", "cifar100" or "svhn"')
     #parser.add_argument('--num_classes', type=int, default=10, help='int - amount of different clsases in the dataset')
     #parser.add_argument('--loss', type=str, default="ce", help='str - how the loss is calculated for the ood sample "bce" ("maxconf" not working yet)')
@@ -242,7 +250,7 @@ def parse_args():
 
     #parser.add_argument('--img_size', type=int, default=32, help='int - amount of pixel for the images')
     #parser.add_argument('--batch_size', type=int, default=256, help='int - amount of images in the train, valid or test batches')
-    #parser.add_argument('--workers', type=int, default=0, help='int - amount of workers in the dataloader')
+
 
     # boolean parameters, false until the flag is set --> then true
     #parser.add_argument('--test', action='store_true', help='flag to set testing to true and test a model')
@@ -251,6 +259,10 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
+    gettrace = getattr(sys, 'gettrace', None)
+    if gettrace():
+        print("num_workers is set to 0 in debugging mode, otherwise no useful debugging possible")
+        args.num_workers = 0
     # some adjusting of the args, do not remove
     #args.batch_size = args.batch_size*2
     #args.detector_model_name = None
@@ -271,11 +283,12 @@ if __name__ == '__main__':
 
     #args.save_model = False  # True
 
-    """
     args.test = True  # if True --> Testing, else False --> Training
     args.model = "vit"  # mininet, vit, resnet, cnn_ibp
-    args.classification_ckpt = "saved_models/trained_classifier/vit_b16_224SupCE_cifar100_bs64_best_accuracy.pth"
-    """
+    args.classification_ckpt = "saved_models/trained_classifier/bs64/vit_b16_224SupCE_cifar10_bs64_best_accuracy.pth"
+    #"""
+
+
 
     if args.test:
         test_classifier(args)
