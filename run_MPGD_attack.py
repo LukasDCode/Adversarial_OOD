@@ -5,8 +5,9 @@ import torch
 torch.set_grad_enabled(False)
 import torchvision
 from vit.src.model import VisionTransformer as ViT
-from PGD_Alex import UniformNoiseGenerator, NormalNoiseGenerator, Contraster, DeContraster
-from PGD_Alex import MonotonePGD, MaxConf, MonotonePGD_Lukas
+from vit.src.model import VisionTransformer
+from utils.ood_detection.PGD_attack import UniformNoiseGenerator, NormalNoiseGenerator, Contraster, DeContraster
+from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf, MonotonePGD_trial
 from vit.src.data_loaders import create_dataloaders
 
 from perturb_images import perturb_image_batch, perturb_single_image
@@ -41,7 +42,7 @@ def parse_args():
     # boolean parameters, false until the flag is set --> then true
     parser.add_argument('--visualize', action='store_true', help='store the original & perturbed images and the attention maps as png files')
     parser.add_argument('--single', action='store_true', help='only perform the attack for a single image of the batch, no parallelization')
-    parser.add_argument('--lukas', action='store_true', help='use the homemade mpgd attack, not the one from alex (currently under maintenance)')
+    parser.add_argument('--trial', action='store_true', help='use the homemade mpgd attack, not the one from alex (currently under maintenance)')
 
     return parser.parse_args()
 
@@ -62,15 +63,32 @@ def perform_MPGD_attack(args):
         num_heads = 12
         num_layers = 12
         # load ViT model and its ckpt
-        ckpt = torch.load(args.ckpt, map_location=torch.device(args.device))
+        # TODO comment ckpt back in
+        #ckpt = torch.load(args.ckpt, map_location=torch.device(args.device))
+        """
         model = ViT(image_size=(IMAGE_SIZE,IMAGE_SIZE), #224,224
                      num_heads=num_heads, #12
                      num_layers=num_layers, #12
                      num_classes=num_classes, #10
                      contrastive=False,
                      timm=True)
+        """
+        model = VisionTransformer(
+            image_size=(args.imagesize, args.imagesize),
+            patch_size=(16, 16),
+            emb_dim=768,
+            mlp_dim=3072,
+            num_heads=12,
+            num_layers=12,
+            num_classes=100,
+            attn_dropout_rate=0.0,
+            dropout_rate=0.1,
+            contrastive=False,
+            timm=True,
+            head=None)
         # now load the model
-        model.load_state_dict(ckpt['state_dict'], strict=False)
+        # TODO comment load_state_dict back in
+        #model.load_state_dict(ckpt['state_dict'], strict=False)
         model = model.to(device=args.device)#cuda()
         model.eval()
         print('ViT Model loaded....')
@@ -80,7 +98,7 @@ def perform_MPGD_attack(args):
 
 
     dataloaders_config = {
-        "data_dir": "/home/wiss/koner/lukas/Adversarial_OOD/data/cifar-100-python/", # "/home/koner/adversarial_ood/data/cifar-100-python/"
+        "data_dir": "data/cifar100", # "/home/koner/adversarial_ood/data/cifar-100-python/"
         "image_size": IMAGE_SIZE, #224
         "batch_size": args.batchsize, #16
         "num_workers": args.workers, #0
@@ -115,9 +133,9 @@ def perform_MPGD_attack(args):
         noise = NormalNoiseGenerator(sigma=1e-4)
 
 
-    if args.lukas:
-        print("+++++ LUKAS MonotonePGD +++++")
-        attack = MonotonePGD_Lukas(args.eps, args.iterations, args.stepsize, num_classes, momentum=0.9, norm=args.norm,
+    if args.trial:
+        print("+++++ Self Written MonotonePGD Trial +++++")
+        attack = MonotonePGD_trial(args.eps, args.iterations, args.stepsize, num_classes, momentum=0.9, norm=args.norm,
                                    loss=loss, normalize_grad=False, early_stopping=0, restarts=args.restarts,
                                    init_noise_generator=noise, model=model, save_trajectory=False)
     else:
@@ -137,6 +155,10 @@ def perform_MPGD_attack(args):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    # TODO remove this line
+    args.model = "vit"
+
     perform_MPGD_attack(args)
 
     # this can be deleted, it is only for a git test

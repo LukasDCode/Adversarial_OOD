@@ -31,7 +31,8 @@ def perturb_image_batch(model, attack, dataloader, device, visualization=False):
             else:
                 softmax_prediction = model(image_batch)  # size = [16, 10]
 
-            clean_out.extend(calculate_softmax_score(softmax_prediction, model.classifier.out_features))
+            # TODO put line back in to code
+            # clean_out.extend(calculate_softmax_score(softmax_prediction, model.classifier.out_features))
 
         # calls the perturb() of RestartAttack --> which calls perturb_inner() of MonotonePGD
         perturbed_image_batch, best_softmax_list, best_idx = attack(image_batch.clone(), label_batch)  # size = [16, 3, 224, 224]
