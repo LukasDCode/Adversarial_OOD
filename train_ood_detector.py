@@ -9,8 +9,8 @@ from utils.normalize_image_data import normalize_general_image_data
 from utils.ood_detection.load_data import shuffle_batch_elements
 from utils.load_data import get_mixed_test_dataloader, get_mixed_train_valid_dataloaders
 
-from PGD_Alex import MonotonePGD, MaxConf
-from PGD_Alex import UniformNoiseGenerator, NormalNoiseGenerator, Contraster, DeContraster
+from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf
+from utils.ood_detection.PGD_attack import UniformNoiseGenerator, NormalNoiseGenerator, Contraster, DeContraster
 
 
 def get_noise_from_args(args):
@@ -77,13 +77,13 @@ def train_detector(args, classification_model):
     if utils.store_model.save_model:
         # Save the model
         model_path = "utils/models/saved_models/detector/"
-        saved_model_name = args.detector_model_name + "_" + str(args.img_size) + "SupCE_ID" + args.data_id + "_OOD"\
+        saved_model_name = args.detector_model_name + "_" + str(args.image_size) + "SupCE_ID" + args.data_id + "_OOD"\
                            + args.data_ood + "_bs" + str(args.batch_size) + "_lr" + str(args.lr).strip(".") + "_epochs"\
                            + str(args.epochs) + "_" + str(int(time.time())) + ".pth"
         #torch._save(detector_model.state_dict(), model_path+saved_model_name)
         torch.save({
             'model_name': args.detector_model_name,
-            'img_size': args.img_size,
+            'image_size': args.image_size,
             'data_id': args.data_id,
             'data_ood': args.data_ood,
             'batch_size': args.batch_size,
@@ -100,13 +100,16 @@ def train_one_epoch(args, detector_model, attack, loss_fn, optimizer, mixed_trai
     running_loss, running_attack_loss, last_loss, last_attack_loss = 0., 0., 0., 0.
 
     for i, (data_id, data_ood) in enumerate(tqdm(mixed_train_dataloader)):
+        # data_id = data_ood = [ [batch_size/2, channels=3, 32, 32], labels=[batch_size/2]
         inputs, labels = shuffle_batch_elements(data_id, data_ood)
+        # inputs = [batch_size, channels=3, 32, 32]
+        # labels = [batch_size, 2] the 2nd dimension is just a copy of the first dimension of the labels
         inputs, labels = inputs.to(device=args.device), labels.to(device=args.device)
         inputs.requires_grad = True #possible because leaf of the acyclic graph
         normalized_inputs = normalize_general_image_data(inputs.clone()) # no detach because requires gradient
         # clone is needed because inputs are later used again for perturbation
-        # inputs:              [batch_size, channels, img_size, img_size]
-        # normalized_inputs:   [batch_size, channels, img_size, img_size]
+        # inputs:              [batch_size, channels, image_size, image_size]
+        # normalized_inputs:   [batch_size, channels, image_size, image_size]
 
         optimizer.zero_grad() # Zero gradients for every batch
         outputs = detector_model(normalized_inputs)
@@ -158,7 +161,7 @@ def error_criterion(outputs,labels):
 
 def test_detector(args):
     model_path = "utils/models/saved_models/detector/"
-    #saved_model_name = args.detector_model_name + "_" + str(args.img_size) + "SupCE_ID" + args.data_id + "_OOD"\
+    #saved_model_name = args.detector_model_name + "_" + str(args.image_size) + "SupCE_ID" + args.data_id + "_OOD"\
     #                       + args.data_ood + "_bs" + str(args.batch_size) + "_lr" + str(args.lr).strip(".") + "_epochs"\
     #                       + str(args.epochs) + "_" + str(int(time.time())) + ".pth"
 
@@ -199,9 +202,10 @@ def parse_args():
     parser.add_argument('--classification_model_name', type=str, default="vit", help='str - what model should be used to classify input samples "vit", "resnet", "mininet" or "cnn_ibp"')
     parser.add_argument('--detector_model_name', type=str, default="vit",
                         help='str - what model should be used to detect id vs ood "vit", "resnet", "mininet" or "cnn_ibp"')
-    parser.add_argument('--class_ckpt', type=str,
-                        default="/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth",
-                        help='str - path of pretrained model checkpoint')
+    parser.add_argument('--class_ckpt', type=str, default="saved_models/trained_classifier/bs64/vit_b16_224SupCE_cifar10_bs64_best_accuracy.pth", help='str - path of pretrained model checkpoint')
+    # "saved_models/trained_classifier/bs64/vit_b16_224SupCE_cifar10_bs64_best_accuracy.pth"
+    # "saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0.npz"
+    # default="/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
     parser.add_argument('--det_ckpt', type=str, default="/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth", help='str - path of pretrained model checkpoint')
     parser.add_argument('--device', type=str, default="cuda", help='str - cpu or cuda to calculate the tensors on')
     parser.add_argument('--data_id', type=str, default="cifar10", help='str - the in-distribution dataset "cifar10", "cifar100" or "svhn"')
@@ -223,7 +227,7 @@ def parse_args():
     parser.add_argument('--num_layers', type=int, default=5, help='int - amount of parallel layers doing the calculations for the vit model')
     parser.add_argument('--momentum', type=float, default=0.9, help='float - factor to change the model weights in gradient descent')
 
-    parser.add_argument('--img_size', type=int, default=32, help='int - amount of pixel for the images')
+    parser.add_argument('--image_size', type=int, default=32, help='int - amount of pixel for the images')
     parser.add_argument('--batch_size', type=int, default=128, help='int - amount of images in the train, valid or test batches')
     parser.add_argument('--workers', type=int, default=0, help='int - amount of workers in the dataloader')
 
@@ -237,18 +241,24 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
+    args.patch_size = 16
 
+    """
     classification_model_ckpt = torch.load(args.class_ckpt, map_location=torch.device(args.device))
     classification_model = get_model_from_args(args, args.classification_model_name, num_classes=10)
     classification_model.load_state_dict(classification_model_ckpt['state_dict'], strict=False)
     classification_model = classification_model.to(device=args.device)  # cuda()
     classification_model.eval()
+    """
+
+    classification_model = None
 
 
     #"""
     args.epochs = 2
     args.lr = 0.0001
-    args.batch_size = 256 # apparently only 128 is possible, otherwise CUDA out of memory --> RuntimeError
+    args.batch_size = 64 # apparently only 128 is possible, otherwise CUDA out of memory --> RuntimeError
+    args.patch_size = 16
 
     args.iterations = 3
     args.restarts = 1
@@ -257,7 +267,9 @@ if __name__ == '__main__':
     args.test = False # if True --> Testing, else False --> Training
     args.detector_model_name = "mininet" # mininet, vit, resnet, cnn_ibp
 
-    #args.img_size = 112
+    args.num_workers = 0
+
+    #args.image_size = 112
     #"""
 
 

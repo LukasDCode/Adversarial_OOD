@@ -194,7 +194,7 @@ def create_detector_dataloaders(config, dataset):
         # CHANGE commented out after 'deit'
         config.deit ='deit' #in config.exp_name.lower() or 'deit' in os.path.basename(config.checkpoint_path) #
     # create dataloader
-    print("Creating dataloaders for {0} with network {1} and ablumentations {2}".format(dataset, config.model, config.albumentation))
+    print("Creating dataloaders for {0} with network {1} and albumentations {2}".format(dataset, config.model, config.albumentation))
     train_dataloader = eval("{}DataLoader".format(dataset))(
         data_dir=os.path.join(config.data_path, dataset.lower()), # os.path.join(config.data_dir, config.dataset),
         image_size=config.image_size,

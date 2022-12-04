@@ -30,7 +30,7 @@ def train_epoch(epoch, model, data_loader, criterion, optimizer, lr_scheduler, m
             batch_data = batch_data.to(device)
         batch_target = batch_target.to(device)
 
-        if mixup_fn is not None and not contrastive: #todo check how can we use it with two corp transform
+        if mixup_fn is not None and not contrastive:
             batch_data, batch_target = mixup_fn(batch_data,batch_target)
 
         optimizer.zero_grad()

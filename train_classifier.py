@@ -22,6 +22,8 @@ def train_epoch(epoch, model, data_loader, criterion, optimizer, lr_scheduler, m
 
     # training loop
     for batch_idx, (batch_data, batch_target) in enumerate(tqdm(data_loader)):
+        # batch_data = [batch_size, channels=3, image_size=224, image_size=224]
+        # batch_target = [batch_size]
         if contrastive:
             if isinstance(batch_data[0],dict):#for albumnetations
                 batch_data = torch.cat([batch_data[0]['image'], batch_data[1]['image']], dim=0)  # .to(device)
@@ -31,7 +33,7 @@ def train_epoch(epoch, model, data_loader, criterion, optimizer, lr_scheduler, m
             batch_data = batch_data.to(device)
         batch_target = batch_target.to(device)
 
-        if mixup_fn is not None and not contrastive: #todo check how can we use it with two corp transform
+        if mixup_fn is not None and not contrastive:
             batch_data, batch_target = mixup_fn(batch_data,batch_target)
 
         optimizer.zero_grad()
@@ -302,44 +304,26 @@ def main(config, device, device_ids):
 
 
 # CHANGE
-
 def save_vit_model(args, model, optimizer, epoch):
 
     #CHANGE currently only vit supported
     args.model = "vit"
 
     # Save the model
-    #saved_model_name = args.model + "_" + str(args.image_size) + "SupCE_" + args.dataset + "_bs" \
-    #                   + str(args.batch_size / 2) + "_epochs" + str(args.epochs) + "_" + str(int(time.time())) + ".pth"
     saved_model_name = args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_" + args.dataset\
                        + "_bs" + str(args.batch_size) + "_best_accuracy.pth"
-    # saved_model_name = "test.pth"
 
-    try:
-        _ = args.data_id
-        is_classification_model = False
-        model_path = "saved_models/trained_detector/"
-    except AttributeError:
-        is_classification_model = True
-        model_path = "saved_models/trained_classifier/"
-
+    model_path = "saved_models/trained_classifier/"
     # create a second file, indicating how many epochs have passed until the best accuracy was reached
     with open(model_path + args.dataset + '.txt', 'w') as f:
         f.write(str(epoch) + ":     " + args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_" + args.dataset\
                        + "_bs" + str(args.batch_size) + "_best_accuracy.pth")
 
-    if is_classification_model:
-        dataset = args.dataset.lower()
-    else:
-        dataset = args.data_id.lower()
-
-    num_classes = 100 if dataset == "cifar100" else 10
-
     torch.save({
         'model_name': args.model, # args.model,
         'loss': args.method,  # args.loss, #args.method,
-        'dataset': dataset,
-        'num_classes': num_classes,
+        'dataset': args.dataset,
+        'num_classes': args.num_classes,
 
         'image_size': args.image_size, # args.img_size, # args.image_size,
         'batch_size': args.batch_size,

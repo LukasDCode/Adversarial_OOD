@@ -49,6 +49,8 @@ def save_model(args, classification_model, optimizer):
 
 
 def load_model(args):
+
+    """
     try:
         _ = args.classification_ckpt # args.classification_ckpt
         is_classification_model = True
@@ -69,13 +71,23 @@ def load_model(args):
         else:
             checkpoint_path = "_save/detection/TEST"
             print("Loading this model will not work - no TEST model available")
+    """
+
+    if args.classification_ckpt:  # args.classification_ckpt #checkpoint_path
+        checkpoint_path = args.classification_ckpt  # args.classification_ckpt
+    else:
+        raise ValueError("No checkpoint path for the classifier was specified")
 
     checkpoint = torch.load(checkpoint_path)
 
+    """
     if is_classification_model:
         args.dataset = checkpoint['dataset']
     else:
         args.data_in = checkpoint['dataset']
+    """
+
+    args.dataset = checkpoint['dataset']
 
     args.model = checkpoint['model_name']
     args.method = checkpoint['loss']

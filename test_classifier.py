@@ -44,7 +44,7 @@ def train_classifier(args):
     if args.device == "cuda": torch.cuda.empty_cache()
 
     classification_model = get_model_from_args(args, args.model, num_classes=args.num_classes)
-    # TODO different loss for vit model
+    # TODO also do different losses for vit model
     if args.loss == "ce":
         loss_fn = torch.nn.CrossEntropyLoss()
     else:
@@ -59,7 +59,6 @@ def train_classifier(args):
         print('EPOCH {}:'.format(epoch_number + 1))
 
         classification_model.train(True)
-        # TODO train one epoch normally and one epoch with adversarially altered images
         avg_loss = train_one_epoch(args, classification_model, loss_fn, optimizer, train_dataloader)
         # We don't need gradients on to do reporting
         classification_model.train(False)  # same as model.eval()
@@ -263,41 +262,8 @@ if __name__ == '__main__':
     if gettrace():
         print("num_workers is set to 0 in debugging mode, otherwise no useful debugging possible")
         args.num_workers = 0
-    # some adjusting of the args, do not remove
-    #args.batch_size = args.batch_size*2
-    #args.detector_model_name = None
 
-    # """
-    #args.epochs = 2
-    #args.lr = 0.001
-    #args.batch_size = 512 #512  # for training the classifier more than 128 is possible, in the detector it would give a CUDA out of memory --> RuntimeError
-    #args.patch_size = 16
-    #args.emb_dim = 768
-    #args.mlp_dim = 3072
-
-    # args.attn_dropout_rate = 0.0
-    # args.dropout_rate = 0.1
-    # args.head = None
-    # args.dataset = "cifar100"
-    # args.num_classes = 10
-
-    #args.save_model = False  # True
-
-    args.test = True  # if True --> Testing, else False --> Training
-    args.model = "vit"  # mininet, vit, resnet, cnn_ibp
-    args.classification_ckpt = "saved_models/trained_classifier/bs64/vit_b16_224SupCE_cifar10_bs64_best_accuracy.pth"
-    #"""
-
-
-
-    if args.test:
-        test_classifier(args)
-    else:
-        try:
-            train_classifier(args)
-        except RuntimeError as error:
-            print("Cuda Memory Summary:", torch.cuda.memory_summary(device=None, abbreviated=False))
-            print("RuntimeeError:", error)
+    test_classifier(args)
 
     print("finished all executions")
 

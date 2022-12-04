@@ -1,4 +1,6 @@
 import os
+import random
+import torch
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10, CIFAR100,SVHN, STL10, ImageFolder
 from torchvision.transforms import transforms
@@ -7,6 +9,17 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
 __all__ = ['cifar10DataLoader', 'ImageNetDataLoader', 'cifar100DataLoader']
+
+class ConcatDataset(torch.utils.data.Dataset):
+    def __init__(self, *datasets):
+        self.datasets = datasets
+
+    def __getitem__(self, i):
+        return tuple(d[i] for d in self.datasets)
+        #return tuple(d[i % len(d)] for d in self.datasets)
+
+    def __len__(self):
+        return min(len(d) for d in self.datasets)
 
 def get_transform(contrastive=True, train=True, image_size=224, dataset='cifar10', network='vit', albumentations=False, no_train_aug=False, deit=False):
     scale = (0.2, 1.)
@@ -272,19 +285,20 @@ class SVHNDataLoader(DataLoader):
 
 
 
+
+
+
 def create_dataloaders(config,no_train_aug=False, out_dataset=False):
-    dataset = config.out_dataset if out_dataset else config.dataset
+    id_dataset = config.dataset
     if config.model!='vit':
         config.deit=False
-    elif no_train_aug:
-        config.deit = 'deit' in config.ckpt.rsplit('/',3)[1].lower()
     else:
         # CHANGE commented out after 'deit'
         config.deit ='deit' #in config.exp_name.lower() or 'deit' in os.path.basename(config.checkpoint_path) #
-    # create dataloader
-    print("Creating dataloaders for {0} with network {1} and albumentations {2}".format(dataset, config.model, config.albumentation))
-    train_dataloader = eval("{}DataLoader".format(dataset))(
-        data_dir=config.out_data_dir if out_dataset else config.data_dir, # os.path.join(config.data_dir, config.dataset),
+    # create id dataloader
+    print("Creating dataloaders for {0} with network {1} and albumentations {2}".format(id_dataset, config.model, config.albumentation))
+    id_train_dataloader = eval("{}DataLoader".format(id_dataset))(
+        data_dir=config.data_dir, # os.path.join(config.data_dir, config.id_dataset),
         image_size=config.image_size,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
@@ -295,8 +309,8 @@ def create_dataloaders(config,no_train_aug=False, out_dataset=False):
         no_train_aug=no_train_aug,
         in_dataset= config.dataset,
         deit = config.deit) # for resnet where mean is different for each in dataset
-    valid_dataloader = eval("{}DataLoader".format(dataset))(
-        data_dir=config.out_data_dir if out_dataset else config.data_dir,  # os.path.join(config.data_dir, config.dataset),
+    id_valid_dataloader = eval("{}DataLoader".format(id_dataset))(
+        data_dir=config.data_dir,
         image_size=config.image_size,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
@@ -304,7 +318,52 @@ def create_dataloaders(config,no_train_aug=False, out_dataset=False):
         net=config.model,
         in_dataset=config.dataset,
         deit=config.deit)# for resnet where mean is different for each in dataset
+
+    # svhn dataloader is written in capital letters
+    ood_dataset = config.ood_dataset.upper() if config.ood_dataset == "svhn" else config.ood_dataset
+    # create ood dataloader
+    print("Creating OOD dataloaders for {0} with network {1} and albumentations {2}".format(ood_dataset, config.model,
+                                                                                        config.albumentation))
+    ood_train_dataloader = eval("{}DataLoader".format(ood_dataset))(
+        data_dir=config.ood_data_dir,  # os.path.join(config.data_dir, config.id_dataset),
+        image_size=config.image_size,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        split='train',
+        contrastive=config.contrastive,
+        albumentation=config.albumentation,
+        net=config.model,
+        no_train_aug=no_train_aug,
+        in_dataset=config.ood_dataset,
+        deit=config.deit)  # for resnet where mean is different for each in dataset
+    ood_valid_dataloader = eval("{}DataLoader".format(ood_dataset))(
+        data_dir=config.ood_data_dir,
+        image_size=config.image_size,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        split='val',
+        net=config.model,
+        in_dataset=config.ood_dataset,
+        deit=config.deit)  # for resnet where mean is different for each in dataset
+
+    train_dataloader = get_mixed_dataloader(config, id_train_dataloader.dataset, ood_train_dataloader.dataset)
+    valid_dataloader = get_mixed_dataloader(config, id_valid_dataloader.dataset, ood_valid_dataloader.dataset)
+
     return train_dataloader, valid_dataloader
+
+
+def get_mixed_dataloader(args, dataset_id, dataset_ood):
+    """
+    combines the ID and the OOD dataset into one single dataloader
+    """
+    return torch.utils.data.DataLoader(
+                ConcatDataset(dataset_id, dataset_ood),
+                batch_size=int(args.batch_size/2), # 64/2=32 --> 32 elements of ID data and 32 elements of OOD data
+                shuffle=True,
+                num_workers=args.num_workers,
+                pin_memory=False
+            )
+
 
 if __name__ == '__main__':
     data_loader = ImageNetDataLoader(

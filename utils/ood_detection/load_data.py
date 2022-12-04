@@ -102,10 +102,10 @@ def get_mixed_dataloader(args, dataset_id, dataset_ood):
     """
     return torch.utils.data.DataLoader(
                 ConcatDataset(dataset_id, dataset_ood),
-                batch_size=int(args.batch_size/2), # 16/2=8
+                batch_size=int(args.batch_size/2), # 64/2=32 --> 32 elements per dataset in each batch of the new dataloader
                 shuffle=True,
                 num_workers=args.workers,
-                pin_memory=True
+                pin_memory=False
             )
 
 
@@ -116,7 +116,7 @@ def shuffle_batch_elements(data_id, data_ood):
     in the end every shuffled_inputs shuffled_targets tensor contains batch_size/2 samples of the ID and
     batch_size/2 samples of the OOD dataset (default is 8 ID + 8 OOD)
     """
-    randomness = list(range(data_id[1].size(dim=0) + data_ood[1].size(dim=0)))  # list of indices will determine the shuffle of inputs & targets alike
+    randomness = list(range(data_id[1].size(dim=0) + data_ood[1].size(dim=0))) # list of indices will determine the shuffle of inputs & targets alike
     random.shuffle(randomness)  # shuffle tensor elements randomly
 
     """
@@ -132,4 +132,6 @@ def shuffle_batch_elements(data_id, data_ood):
     # if the duplicated labels tensor doesnt work, maybe flipping the 2nd dimension with a Tile '~' works
     # shuffled_targets[1] = ~shuffled_targets[1] or something like this
 
-    del data_id[1], data_ood[1] # remove the unused original class labels for performance (not 
+    del data_id[1], data_ood[1] # remove the unused original class labels for performance
+
+    return shuffled_inputs, shuffled_targets

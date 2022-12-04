@@ -15,7 +15,6 @@
 
 #get_ipython().run_line_magic('load_ext', 'autoreload')
 
-import sys
 #sys.path.insert(0, "../..")
 
 import os
@@ -25,28 +24,22 @@ import os
 # In[2]:
 
 
-import math
-
 import pandas as pd
 import numpy as np
 from PIL import Image
-import requests
 import pickle
 import matplotlib.pyplot as plt
 #get_ipython().run_line_magic('config', "InlineBackend.figure_format = 'retina'")
 from pylab import rcParams
 
 from tqdm import tqdm
-import ipywidgets as widgets
-from IPython.display import display, clear_output
 from tensorflow.keras.utils import to_categorical
 
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torchvision.models import resnet50
+
 #import torchvision.transforms as T
-from torchvision.transforms import transforms as T
 torch.set_grad_enabled(False);
 
 
@@ -643,8 +636,8 @@ ood_outputs, ood_softmax = get_model_output_from_single_image_ood(X_train[0])
 # In[33]:
 
 
-from PGD_Alex import UniformNoiseGenerator, NormalNoiseGenerator, Contraster, DeContraster
-from PGD_Alex import MonotonePGD, MaxConf, MonotonePGD_Lukas
+from utils.ood_detection.PGD_attack import NormalNoiseGenerator
+from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf, MonotonePGD_trial
 from vit.src.data_loaders import create_dataloaders
 from utils.dotdict import dotdict
 
@@ -801,15 +794,17 @@ noise = NormalNoiseGenerator(sigma=1e-4)
 #noise = DeContraster(eps)
 #attack = MonotonePGD(eps, iterations, stepsize, num_classes, model=PGD_args.model)
 
-lukas_instead_of_alex = False #True #False
-if lukas_instead_of_alex:
-    attack = MonotonePGD_Lukas(eps, iterations, stepsize, num_classes, momentum=0.9, norm=norm, loss=loss,
-                               normalize_grad=False, early_stopping=0, restarts=PGD_args.restarts,
-                               init_noise_generator=noise, model=PGD_args.model, save_trajectory=False)
-else:
+alex_attack = False #True #False
+if alex_attack:
     attack = MonotonePGD(eps, iterations, stepsize, num_classes, momentum=0.9, norm=norm, loss=loss,
                          normalize_grad=False, early_stopping=0, restarts=PGD_args.restarts,
                          init_noise_generator=noise, model=PGD_args.model, save_trajectory=False)
+else:
+    attack = MonotonePGD_trial(eps, iterations, stepsize, num_classes, momentum=0.9, norm=norm, loss=loss,
+                               normalize_grad=False, early_stopping=0, restarts=PGD_args.restarts,
+                               init_noise_generator=noise, model=PGD_args.model, save_trajectory=False)
+
+
 
 
 # In[39]:
