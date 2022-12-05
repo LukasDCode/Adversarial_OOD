@@ -8,7 +8,7 @@ pip install -r requirements.txt
 ```
 
 #### Datasets
-Please download the [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) and [SVHN](http://ufldl.stanford.edu/housenumbers/) datasets  
+Download the [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) and [SVHN](http://ufldl.stanford.edu/housenumbers/) datasets  
 and place them in their respective directory in the ```data``` folder like so:  
 ```shell
 data/cifar10/<place files here>
@@ -16,28 +16,41 @@ data/cifar100/<place files here>
 data/svhn/<place files here>
 ```
 
+#### Pre-Trained Models
+To run the following code you have to download pre-trained models and place them in ```saved_models/pretrained/```. [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) and [SVHN](http://ufldl.stanford.edu/housenumbers/) datasets  
+The following section explains mostly the use of T16 and B16 ViT models with patch size 16 and image size 224 which can be downloaded like so:  
+```shell
+wget https://storage.googleapis.com/vit_models/augreg/S_16-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz
+wget https://storage.googleapis.com/vit_models/augreg/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz
+```
+But in order to download other models refer to [the official github page](https://github.com/rwightman/pytorch-image-models/blob/main/timm/models/vision_transformer.py#L53).
+
+
 # Usage
 
 ## Train a Vision Transformer Classifier
-On Cifar-10
+With **batch size 64** on Cifar-10, Cifar-100 and SVHN respectively
 ```shell
-python train_classifier.py --exp-name train_vit_model_cifar10 --model-arch b16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_cifar10 --model-arch b16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --train-steps 47000 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_cifar100 --model-arch b16 --image-size 224 --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --train-steps 47000 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_svhn --model-arch b16 --image-size 224 --data-dir data/ --dataset svhn --num-classes 10 --train-steps 69000 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 ```
 
-On Cifar-100
+Or with **batch size 32** on Cifar-10, Cifar-100 and SVHN respectively
 ```shell
-python train_classifier.py --exp-name train_vit_model_cifar100 --model-arch b16 --image-size 224 --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --train-steps 1100 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_cifar10 --model-arch b16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --train-steps 95000 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_cifar100 --model-arch b16 --image-size 224 --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --train-steps 95000 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --exp-name train_vit_model_svhn --model-arch b16 --image-size 224 --data-dir data/ --dataset svhn --num-classes 10 --train-steps 138000 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 ```
 
-On SVHN
-```shell
-python train_classifier.py --exp-name train_vit_model_svhn --model-arch b16 --image-size 224 --data-dir data/ --dataset svhn --num-classes 10 --train-steps 2290 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
-```
 
 ### Test the Classifier
+One advantage of this implementation is, that all parameters are stored inside the checkpoint file, so they do not have to be specified manually.
+In order to test the first classifier trained on Cifar-10 you have to execute the following command:
 ```shell
-python DO_SOMETHING
+python --model vit --n-gpu 2 --num-workers 8 --classification_ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs64_best_accuracy.pth
 ```
+The ```--classification_ckpt``` eventually has to be adapted to the location where your trained classifier is located.
 
 
 ## Train a OOD Detector Module
