@@ -11,7 +11,7 @@ from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from vit.src.model import VisionTransformer
 from vit.src.config import *
 from vit.src.checkpoint import load_checkpoint
-from vit.src.utils import setup_device, accuracy, MetricTracker
+from vit.src.utils import accuracy, MetricTracker
 from utils.ood_detection.data_loaders import create_dataloaders
 from utils.get_model import get_model_from_args
 from util import adjust_learning_rate
@@ -166,8 +166,7 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
     return metrics.result()
 
 
-def main(config, device, device_ids):
-
+def main(config, device):
     # metric tracker
     metric_names = ['loss', 'acc1', 'acc2']
     train_metrics = MetricTracker(*[metric for metric in metric_names], writer=None)
@@ -221,12 +220,6 @@ def main(config, device, device_ids):
     # send detector and classifier model to device
     detector = detector.to(device)
     classifier = classifier.to(device)
-    # it is NOT possible to Parallelize the attack, so this code block CAN NOT be used
-    if device_ids and len(device_ids) > 1:
-        detector = torch.nn.DataParallel(detector, device_ids=device_ids)
-        classifier = torch.nn.DataParallel(classifier, device_ids=device_ids)
-
-
 
     # create dataloader
     # CHANGE svhn dataloader is in capital letters, later reset to lower case
@@ -392,8 +385,8 @@ def load_classifier(args):
 
 # CHANGE
 def save_vit_detector(args, model, optimizer, epoch):
-    saved_model_name = args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_" + args.dataset\
-                       + "_bs" + str(args.batch_size) + "_best_accuracy.pth"
+    saved_model_name = args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_id_" +\
+                       args.dataset + "_ood_" + args.ood_dataset + "_bs" + str(args.batch_size) + "_best_accuracy.pth"
     model_path = "saved_models/trained_detector/"
 
     # create a second file, indicating how many epochs have passed until the best accuracy was reached
@@ -405,6 +398,7 @@ def save_vit_detector(args, model, optimizer, epoch):
         'model_name': args.model, # args.model,
         'loss': args.method,  # args.loss, #args.method,
         'dataset': args.dataset,
+        'ood_dataset': args.ood_dataset,
         'num_classes': args.num_classes,
 
         'image_size': args.image_size, # args.img_size, # args.image_size,
@@ -440,6 +434,7 @@ def get_train_detector_config():
 
     parser.add_argument('--device', type=str, default="cuda", help='str - cpu or cuda to calculate the tensors on')
     #parser.add_argument("--n-gpu", type=int, default=1, help="number of gpus to use") # NO PARALLELIZATION with attack so only one gpu is possible
+    parser.add_argument("--select-gpu", type=int, default=0, help="specific gpu to use, because parallelization is not possible")
     parser.add_argument("--tensorboard", default=False, action='store_true', help='flag of turnning on tensorboard')
     parser.add_argument("--classifier", type=str, default="vit", help="model used to classify id samples")
     parser.add_argument("--classifier-ckpt-path", type=str, default=None, help="model checkpoint to load weights")
@@ -504,22 +499,20 @@ def get_train_detector_config():
 
 if __name__ == '__main__':
     config = get_train_detector_config()
-    if config.device == "cpu":
-        device = "cpu"
-        device_ids = None
-    else: # if CUDA
-        #device, device_ids = setup_device(config.n_gpu)
-        # it is NOT possible to Parallelize the attack, so cuda is set to one GPU and device_ids are set to None
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-        device = "cuda"
-        device_ids = None
+    device_id_list = list(range(torch.cuda.device_count()))
+    # it is NOT possible to Parallelize the attack, so cuda is set to one GPU and device_ids are set to None
+    if config.device == "cuda":
+        if config.select_gpu in device_id_list:
+            # allows to specify a certain cuda core, because parallelization is not possible
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(config.select_gpu)
+        else:
+            print("Specified selected GPU is not available, not that many GPUs available --> Defaulted to cuda:0")
+            os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     gettrace = getattr(sys, 'gettrace', None)
     if gettrace():
         print("num_workers is set to 0 in debugging mode, otherwise debugging issues occur")
         config.num_workers = 0
 
-    main(config, device, device_ids)
-
-    #TODO debug train_detector.py - should theoretically work...
+    main(config, config.device)
 
