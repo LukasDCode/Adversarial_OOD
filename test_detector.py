@@ -11,7 +11,6 @@ from vit.src.utils import MetricTracker, accuracy
 from utils.ood_detection.ood_detector import MiniNet, CNN_IBP
 from utils.ood_detection.data_loaders import create_mixed_test_dataloaders
 from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf
-from utils.load_data import get_test_dataloader
 from utils.store_model import load_classifier, load_detector
 from train_detector import get_noise_from_args, shuffle_batch_elements
 
@@ -62,11 +61,11 @@ def test_detector(args):
     test_dataloader = create_mixed_test_dataloaders(args)
 
     # attack instance
-    if config.attack:
-        noise = get_noise_from_args(config.noise, config.eps)
-        attack = MonotonePGD(config.eps, config.iterations, config.stepsize, num_classes=2, momentum=0.9,
-                             norm=config.norm, loss=MaxConf(True), normalize_grad=False, early_stopping=0,
-                             restarts=config.restarts, init_noise_generator=noise, model=classifier, save_trajectory=False)
+    if args.attack:
+        noise = get_noise_from_args(args.noise, args.eps)
+        attack = MonotonePGD(args.eps, args.iterations, args.stepsize, num_classes=2, momentum=0.9,
+                             norm=args.norm, loss=MaxConf(True), normalize_grad=False, early_stopping=0,
+                             restarts=args.restarts, init_noise_generator=noise, model=classifier, save_trajectory=False)
     else:
         attack = None
 
@@ -75,7 +74,7 @@ def test_detector(args):
         classifier.eval()
         detector.eval()
         criterion = torch.nn.CrossEntropyLoss().to(args.device) # CHANGE placed outside of loop
-        for epoch_nr, (id_data, ood_data) in enumerate(tqdm(test_dataloader)):
+        for batch_nr, (id_data, ood_data) in enumerate(tqdm(test_dataloader)):
             inputs, labels = shuffle_batch_elements(id_data, ood_data)
             # from ViT training validation
             metrics.reset()
@@ -102,15 +101,14 @@ def test_detector(args):
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
-
-            # TODO REMOVE
-            if epoch_nr == 2: break
+            # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
+            if args.break_early and batch_nr == 18: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
     acc2 = np.mean(acc2s)
     if metrics.writer is not None:
-        metrics.writer.set_step(epoch_nr, 'valid')
+        metrics.writer.set_step(batch_nr, 'valid')
     metrics.update('loss', loss)
     metrics.update('acc1', acc1)
     metrics.update('acc2', acc2)
@@ -154,6 +152,7 @@ def parse_args():
     parser.add_argument("--num-workers", type=int, default=8, help="number of workers")
     parser.add_argument("--select-gpu", type=int, default=0, help="select gpu to use, no parallelization possible")
     parser.add_argument('--attack', action='store_true', help='toggels the MonotonePGD attack')
+    parser.add_argument('--break-early', action='store_true', help='interupt execution earlier for developing purposes')
 
     parser.add_argument('--albumentation', action='store_true', help='use albumentation as data aug')
     parser.add_argument('--contrastive', action='store_true', help='using distributed loss calculations across multiple GPUs')
@@ -161,13 +160,13 @@ def parse_args():
     return parser.parse_args()
 
 if __name__ == '__main__':
-    config = parse_args()
+    args = parse_args()
     device_id_list = list(range(torch.cuda.device_count()))
     # it is NOT possible to Parallelize the attack, so cuda is set to one GPU and device_ids are set to None
-    if config.device == "cuda":
-        if config.select_gpu in device_id_list:
+    if args.device == "cuda":
+        if args.select_gpu in device_id_list:
             # allows to specify a certain cuda core, because parallelization is not possible
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(config.select_gpu)
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(args.select_gpu)
         else:
             print("Specified selected GPU is not available, not that many GPUs available --> Defaulted to cuda:0")
             os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -175,8 +174,8 @@ if __name__ == '__main__':
     gettrace = getattr(sys, 'gettrace', None)
     if gettrace():
         print("num_workers is set to 0 in debugging mode, otherwise debugging issues occur")
-        config.num_workers = 0
+        args.num_workers = 0
 
-    test_detector(config)
+    test_detector(args)
     print("finished all executions")
 

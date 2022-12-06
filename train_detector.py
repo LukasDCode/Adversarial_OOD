@@ -20,7 +20,7 @@ from losses import SupConLoss
 from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf, get_noise_from_args
 
 def train_epoch(epoch, detector, data_loader, criterion, optimizer, attack, lr_scheduler, metrics,
-                device=torch.device('cpu'), contrastive=False, test_contrastive_acc=False, method=None, criterion2=None, head=None, mixup_fn=None):
+                device=torch.device('cpu'), contrastive=False, test_contrastive_acc=False, method=None, criterion2=None, head=None, mixup_fn=None, break_early=False):
     metrics.reset()
 
     # training loop
@@ -113,14 +113,13 @@ def train_epoch(epoch, detector, data_loader, criterion, optimizer, attack, lr_s
                 print("Train Epoch: {:03d} Batch: {:05d}/{:05d} Loss: {:.4f} Acc@1: {:.2f}, Acc@2: {:.2f}"
                         .format(epoch, batch_idx, len(data_loader), loss.item(), 0 if contrastive else acc1.item(),0 if contrastive else acc2.item()))#, acc5.item()
 
-
-        # TODO REMOVE
-        if batch_idx == 60: break
+        # break out of loop sooner, because a full epoch takes around 16h, 1 iteration takes ~20sec
+        if break_early and batch_idx == 10: break
 
     return metrics.result()
 
 
-def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device=torch.device('cpu')):
+def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device=torch.device('cpu'), break_early=False):
     metrics.reset()
     losses = []
     acc1s = []
@@ -138,7 +137,7 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
             batch_data = batch_data.to(device)
             batch_target = batch_target.to(device)
 
-            batch_pred = detector(batch_data, eval = config.eval)
+            batch_pred = detector(batch_data, eval = args.eval)
             loss = criterion(batch_pred, batch_target)
             acc1, acc2 = accuracy(batch_pred, batch_target, topk=(1, 2)) # (1,2) because when only two classes then no acc5 possible, only acc2
             losses.append(loss.item())
@@ -151,16 +150,16 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
                 # calls the perturb() of RestartAttack --> which calls perturb_inner() of MonotonePGD
                 perturbed_inputs, _, _ = attack(batch_data, batch_target)  # once WAS inputs.clone()
 
-                perturbed_batch_pred = detector(perturbed_inputs, eval=config.eval)
+                perturbed_batch_pred = detector(perturbed_inputs, eval=args.eval)
                 loss = criterion(perturbed_batch_pred, batch_target)
                 p_acc1, p_acc2 = accuracy(perturbed_batch_pred, batch_target, topk=(1, 2))  # (1,2) because when only two classes then no acc5 possible, only acc2
                 losses.append(loss.item())
                 acc1s.append(p_acc1.item())
                 acc2s.append(p_acc2.item())
 
-
-            # TODO REMOVE
-            if batch_idx == 60: break
+            # break out of validation sooner, because a full validation takes around 16h same as 1 epoch, 1 iteration takes ~20sec
+            if break_early and batch_idx == 10: break
+            elif batch_idx == 200: break # TODO remove this is for validation to only take 1h instead of 3.5h
 
 
     loss = np.mean(losses)
@@ -174,7 +173,7 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
     return metrics.result()
 
 
-def main(config, device):
+def main(args, device):
     # metric tracker
     metric_names = ['loss', 'acc1', 'acc2']
     train_metrics = MetricTracker(*[metric for metric in metric_names], writer=None)
@@ -183,38 +182,38 @@ def main(config, device):
     # create detector model
     print("create detector model")
     detector = VisionTransformer(
-             image_size=(config.image_size, config.image_size),
-             patch_size=(config.patch_size, config.patch_size),
-             emb_dim=config.emb_dim,
-             mlp_dim=config.mlp_dim,
-             num_heads=config.num_heads,
-             num_layers=config.num_layers,
-             num_classes=config.num_classes,
-             attn_dropout_rate=config.attn_dropout_rate,
-             dropout_rate=config.dropout_rate,
-             contrastive=config.contrastive,
+             image_size=(args.image_size, args.image_size),
+             patch_size=(args.patch_size, args.patch_size),
+             emb_dim=args.emb_dim,
+             mlp_dim=args.mlp_dim,
+             num_heads=args.num_heads,
+             num_layers=args.num_layers,
+             num_classes=args.num_classes,
+             attn_dropout_rate=args.attn_dropout_rate,
+             dropout_rate=args.dropout_rate,
+             contrastive=args.contrastive,
              timm=True,
-             head=config.head)#'jx' in config.checkpoint_path)
+             head=args.head)#'jx' in args.checkpoint_path)
 
-    classifier = load_classifier(copy.copy(config))
+    classifier = load_classifier(copy.copy(args))
 
     # for cutmix and mixup
     mixup_fn = None
-    mixup_active = config.mixup > 0 or config.cutmix > 0. or config.cutmix_minmax is not None
+    mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None
     if mixup_active:
         print("Activating cutmix and mixup")
         mixup_fn = Mixup(
-            mixup_alpha=config.mixup, cutmix_alpha=config.cutmix, cutmix_minmax=config.cutmix_minmax,
-            prob=config.mixup_prob, switch_prob=config.mixup_switch_prob, mode=config.mixup_mode,
-            label_smoothing=config.smoothing, num_classes=config.num_classes)
+            mixup_alpha=args.mixup, cutmix_alpha=args.cutmix, cutmix_minmax=args.cutmix_minmax,
+            prob=args.mixup_prob, switch_prob=args.mixup_switch_prob, mode=args.mixup_mode,
+            label_smoothing=args.smoothing, num_classes=args.num_classes)
 
 
     # load checkpoint
-    if config.checkpoint_path:
-        state_dict = load_checkpoint(config.checkpoint_path, new_img=config.image_size, emb_dim=config.emb_dim,
-                                     layers=config.num_layers,patch=config.patch_size)
-        print("Loading pretrained weights from {}".format(config.checkpoint_path))
-        if not config.test_contrastive_acc and  not config.eval and config.num_classes != state_dict['classifier.weight'].size(0)  :#not
+    if args.checkpoint_path:
+        state_dict = load_checkpoint(args.checkpoint_path, new_img=args.image_size, emb_dim=args.emb_dim,
+                                     layers=args.num_layers,patch=args.patch_size)
+        print("Loading pretrained weights from {}".format(args.checkpoint_path))
+        if not args.test_contrastive_acc and  not args.eval and args.num_classes != state_dict['classifier.weight'].size(0)  :#not
             del state_dict['classifier.weight']
             del state_dict['classifier.bias']
             print("re-initialize fc layer")
@@ -231,27 +230,27 @@ def main(config, device):
 
     # create dataloader
     # CHANGE svhn dataloader is in capital letters, later reset to lower case
-    if config.dataset == 'svhn': config.dataset = 'SVHN'
-    train_dataloader, valid_dataloader = create_dataloaders(config)
-    if config.dataset == 'SVHN': config.dataset = 'svhn'
+    if args.dataset == 'svhn': args.dataset = 'SVHN'
+    train_dataloader, valid_dataloader = create_dataloaders(args)
+    if args.dataset == 'SVHN': args.dataset = 'svhn'
     # training criterion
     print("create criterion and optimizer")
-    if config.contrastive:
+    if args.contrastive:
         print("Using contrastive loss...")
-        criterion = SupConLoss(temperature=config.temp, similarity_metric=config.sim_metric).to(device)
+        criterion = SupConLoss(temperature=args.temp, similarity_metric=args.sim_metric).to(device)
     else:
-        if config.mixup > 0.:
+        if args.mixup > 0.:
             print("Criterion using mixup ")
             # smoothing is handled with mixup label transform
             criterion = SoftTargetCrossEntropy().to(device)
-        elif config.smoothing:
+        elif args.smoothing:
             print("Criterion using labelsmoothong ")
-            criterion = LabelSmoothingCrossEntropy(smoothing=config.smoothing).to(device)
+            criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing).to(device)
         else:
             print("Criterion using only crossentropy ")
             criterion = torch.nn.CrossEntropyLoss().to(device)
 
-    if config.contrastive and config.head=="both":
+    if args.contrastive and args.head=="both":
         print("Using both loss of supcon and crossentropy")
         criterion2 = nn.CrossEntropyLoss().to(device)
     else:
@@ -259,30 +258,30 @@ def main(config, device):
 
 
     # create optimizers and learning rate scheduler
-    if config.opt =="AdamW":
+    if args.opt =="AdamW":
         print("Using AdmW optimizer")
-        optimizer = torch.optim.AdamW(params=detector.parameters(), lr=config.lr, weight_decay=config.wd)
+        optimizer = torch.optim.AdamW(params=detector.parameters(), lr=args.lr, weight_decay=args.wd)
     else:
         optimizer = torch.optim.SGD(
             params=detector.parameters(),
-            lr=config.lr,
-            weight_decay=config.wd,
+            lr=args.lr,
+            weight_decay=args.wd,
             momentum=0.9)
-    if config.cosine:
+    if args.cosine:
         lr_scheduler = None
     else:
         lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer=optimizer,
-            max_lr=config.lr,
-            pct_start=config.warmup_steps / config.train_steps,
-            total_steps=config.train_steps)
+            max_lr=args.lr,
+            pct_start=args.warmup_steps / args.train_steps,
+            total_steps=args.train_steps)
 
 
     # attack instance
-    if config.attack:
-        noise = get_noise_from_args(config.noise, config.eps)
-        attack = MonotonePGD(config.eps, config.iterations, config.stepsize, num_classes=2, momentum=0.9, norm=config.norm,
-                             loss=MaxConf(True), normalize_grad=False, early_stopping=0, restarts=config.restarts,
+    if args.attack:
+        noise = get_noise_from_args(args.noise, args.eps)
+        attack = MonotonePGD(args.eps, args.iterations, args.stepsize, num_classes=2, momentum=0.9, norm=args.norm,
+                             loss=MaxConf(True), normalize_grad=False, early_stopping=0, restarts=args.restarts,
                              init_noise_generator=noise, model=classifier,
                              save_trajectory=False)
     else:
@@ -293,28 +292,28 @@ def main(config, device):
     print("start training")
     best_acc = 0.0
     best_epoch = 0
-    config.epochs = config.train_steps // len(train_dataloader)
-    print("length of train loader : ", len(train_dataloader), ' and total epoch ', config.epochs)
-    for epoch in range(1, config.epochs + 1):
-        if config.cosine:
-            adjust_learning_rate(config, optimizer, epoch)
+    args.epochs = args.train_steps // len(train_dataloader)
+    print("length of train loader : ", len(train_dataloader), ' and total epoch ', args.epochs)
+    for epoch in range(1, args.epochs + 1):
+        if args.cosine:
+            adjust_learning_rate(args, optimizer, epoch)
         for param_group in optimizer.param_groups:
             print("learning rate at {0} epoch is {1}".format(epoch, param_group['lr']))
 
         log = {'epoch': epoch}
 
-        if not config.eval:
+        if not args.eval:
             # train the detector model
             detector.train()
             result = train_epoch(epoch, detector, train_dataloader, criterion, optimizer, attack, lr_scheduler, train_metrics, device,
-                                 contrastive=config.contrastive, test_contrastive_acc=config.test_contrastive_acc, method=config.method,
-                                 head=config.head, criterion2=criterion2, mixup_fn=mixup_fn)
+                                 contrastive=args.contrastive, test_contrastive_acc=args.test_contrastive_acc, method=args.method,
+                                 head=args.head, criterion2=criterion2, mixup_fn=mixup_fn, break_early=args.break_early)
             log.update(result)
 
         # validate the detector model
-        if not config.contrastive:
+        if not args.contrastive:
             detector.eval()
-            result = valid_epoch(epoch, detector, attack, valid_dataloader, criterion, valid_metrics, device)
+            result = valid_epoch(epoch, detector, attack, valid_dataloader, criterion, valid_metrics, device, break_early=args.break_early)
             log.update(**{'val_' + k: v for k, v in result.items()})
 
         # best acc
@@ -326,19 +325,18 @@ def main(config, device):
             # CHANGE
             # save the detector model with the best accuracy
             print("save the detector model with the best accuracy")
-            save_vit_detector(config, detector, optimizer, epoch)
+            save_vit_detector(args, detector, optimizer, epoch)
 
 
         # print logged information to the screen
         for key, value in log.items():
             print('    {:15s}: {}'.format(str(key), value))
 
+        # a full epoch takes ~16h to execute and n epochs take n times as much time
+        if args.break_early and epoch == 1: break
 
-        # TODO REMOVE
-        if epoch == 1: break
 
-
-    if config.test_contrastive_acc or config.eval or not config.contrastive:
+    if args.test_contrastive_acc or args.eval or not args.contrastive:
         print("Best accuracy : ", best_acc, ' for ', best_epoch)# saving class mean
         #best_curr_acc = {'best_acc': best_acc,'best_epoch': best_epoch,
         #                 'curr_acc': log['val_acc1'],'curr_epoch': epoch}
@@ -438,10 +436,10 @@ def save_vit_detector(args, model, optimizer, epoch):
     print("Model saved in path: ", model_path + saved_model_name)
 
 
-def get_train_detector_config():
+def get_train_detector_args():
     parser = argparse.ArgumentParser("Visual Transformer Train/Fine-tune")
 
-    # basic config
+    # basic args
     parser.add_argument("--model", type=str, default="vit", help="model used to detect ood samples")
     parser.add_argument("--checkpoint-path", type=str, default=None, help="model checkpoint to load weights")
     parser.add_argument('--model_name', default='vit_base_patch16_224', type=str, help="ViT pretrained model type")
@@ -501,29 +499,30 @@ def get_train_detector_config():
 
     # other settings
     parser.add_argument('--attack', action='store_true', help='toggels the MonotonePGD attack')
+    parser.add_argument('--break-early', action='store_true', help='interupt execution earlier for developing purposes')
     parser.add_argument('--contrastive', action='store_true', help='using distributed loss calculations across multiple GPUs')
     parser.add_argument('--albumentation', action='store_true', help='use albumentation as data aug')
     parser.add_argument('--test', action='store_true', help='just to block the GPUs')
     parser.add_argument('--test_contrastive_acc', action='store_true', help='test iterative accuracy accross all epoch for contrastive loss')
-    config = parser.parse_args()
+    args = parser.parse_args()
 
-    # model config
-    config = eval("get_{}_config".format(config.model_arch))(config)
+    # model args
+    args = eval("get_{}_config".format(args.model_arch))(args)
 
-    # CHANGE comment out storing config in directory, only printing is left in
-    # process_config(config)
-    print_config(config)
-    config.num_classes = 2 #is always forced to be 2 for ID and OOD
-    return config
+    # CHANGE comment out storing args in directory, only printing is left in
+    # process_config(args)
+    print_config(args)
+    args.num_classes = 2 #is always forced to be 2 for ID and OOD
+    return args
 
 if __name__ == '__main__':
-    config = get_train_detector_config()
+    args = get_train_detector_args()
     device_id_list = list(range(torch.cuda.device_count()))
     # it is NOT possible to Parallelize the attack, so cuda is set to one GPU and device_ids are set to None
-    if config.device == "cuda":
-        if config.select_gpu in device_id_list:
+    if args.device == "cuda":
+        if args.select_gpu in device_id_list:
             # allows to specify a certain cuda core, because parallelization is not possible
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(config.select_gpu)
+            os.environ["CUDA_VISIBLE_DEVICES"] = str(args.select_gpu)
         else:
             print("Specified selected GPU is not available, not that many GPUs available --> Defaulted to cuda:0")
             os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -531,7 +530,7 @@ if __name__ == '__main__':
     gettrace = getattr(sys, 'gettrace', None)
     if gettrace():
         print("num_workers is set to 0 in debugging mode, otherwise debugging issues occur")
-        config.num_workers = 0
+        args.num_workers = 0
 
-    main(config, config.device)
+    main(args, args.device)
 
