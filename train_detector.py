@@ -60,7 +60,7 @@ def train_epoch(epoch, detector, data_loader, criterion, optimizer, attack, lr_s
             loss = criterion(batch_pred, batch_target)
 
         if head=="both" and contrastive:# train both head contrastive and classifier
-            loss1 =  criterion2(pred_classifier, batch_target)
+            loss1 = criterion2(pred_classifier, batch_target)
             loss = loss + 0.2*loss1
         loss.backward()
         optimizer.step()
@@ -113,6 +113,10 @@ def train_epoch(epoch, detector, data_loader, criterion, optimizer, attack, lr_s
                 print("Train Epoch: {:03d} Batch: {:05d}/{:05d} Loss: {:.4f} Acc@1: {:.2f}, Acc@2: {:.2f}"
                         .format(epoch, batch_idx, len(data_loader), loss.item(), 0 if contrastive else acc1.item(),0 if contrastive else acc2.item()))#, acc5.item()
 
+
+        # TODO REMOVE
+        if batch_idx == 60: break
+
     return metrics.result()
 
 
@@ -153,6 +157,10 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
                 losses.append(loss.item())
                 acc1s.append(p_acc1.item())
                 acc2s.append(p_acc2.item())
+
+
+            # TODO REMOVE
+            if batch_idx == 60: break
 
 
     loss = np.mean(losses)
@@ -286,7 +294,7 @@ def main(config, device):
     best_acc = 0.0
     best_epoch = 0
     config.epochs = config.train_steps // len(train_dataloader)
-    print("length of train loader : ",len(train_dataloader),' and total epoch ',config.epochs)
+    print("length of train loader : ", len(train_dataloader), ' and total epoch ', config.epochs)
     for epoch in range(1, config.epochs + 1):
         if config.cosine:
             adjust_learning_rate(config, optimizer, epoch)
@@ -324,6 +332,10 @@ def main(config, device):
         # print logged information to the screen
         for key, value in log.items():
             print('    {:15s}: {}'.format(str(key), value))
+
+
+        # TODO REMOVE
+        if epoch == 1: break
 
 
     if config.test_contrastive_acc or config.eval or not config.contrastive:
@@ -401,6 +413,13 @@ def save_vit_detector(args, model, optimizer, epoch):
         'ood_dataset': args.ood_dataset,
         'num_classes': args.num_classes,
 
+        'eps': args.eps,
+        'norm': args.norm,
+        'iterations': args.iterations,
+        'restarts': args.restarts,
+        'stepsize': args.stepsize,
+        'noise': args.noise,
+
         'image_size': args.image_size, # args.img_size, # args.image_size,
         'batch_size': args.batch_size,
         'patch_size': args.patch_size,
@@ -436,7 +455,7 @@ def get_train_detector_config():
     #parser.add_argument("--n-gpu", type=int, default=1, help="number of gpus to use") # NO PARALLELIZATION with attack so only one gpu is possible
     parser.add_argument("--select-gpu", type=int, default=0, help="specific gpu to use, because parallelization is not possible")
     parser.add_argument("--tensorboard", default=False, action='store_true', help='flag of turnning on tensorboard')
-    parser.add_argument("--classifier", type=str, default="vit", help="model used to classify id samples")
+    #parser.add_argument("--classifier", type=str, default="vit", help="model used to classify id samples")
     parser.add_argument("--classifier-ckpt-path", type=str, default=None, help="model checkpoint to load weights")
 
     parser.add_argument("--image-size", type=int, default=384, help="input image size", choices=[128, 160, 224, 384])
