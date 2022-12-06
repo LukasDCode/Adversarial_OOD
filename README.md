@@ -7,7 +7,7 @@ All required packages are frozen in the requirements.txt file.
 pip install -r requirements.txt
 ```
 
-#### Datasets
+#### Download Datasets
 Download the [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) and [SVHN](http://ufldl.stanford.edu/housenumbers/) datasets  
 and place them in their respective directory in the ```data``` folder like so:  
 ```shell
@@ -16,7 +16,7 @@ data/cifar100/<place files here>
 data/svhn/<place files here>
 ```
 
-#### Pre-Trained Models
+#### Download Pre-Trained Models
 To run the following code you have to download pre-trained models and place them in ```saved_models/pretrained/```. [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) and [SVHN](http://ufldl.stanford.edu/housenumbers/) datasets  
 The following section explains mostly the use of B16 and T16 ViT models with patch size 16 and image size 224 which can be downloaded like so:  
 ```shell
@@ -58,7 +58,7 @@ By default the trained classifier gets placed in the ```saved_models/trained_cla
 
 
 
-## Train a OOD Detector Module
+## Train an OOD Detector
 Training a ViT detector takes an already trained classifier into account, as the PGD attack is performed on the gradients of the classifier.
 The following command trains a tiny ViT model with batch size 16 on cifar10 as ID data and SVHN as OOD data for 10 epochs.
 If more epochs are desired, just increase the ```--train-steps``` argument. 3125 training steps are equal to one epoch for batch size 32.
@@ -72,7 +72,7 @@ In case the paths and the trained models have not been changed yet, the paths sh
 By default the trained detector gets placed in the ```saved_models/trained_detector/``` directory.
 
 
-### Test the OOD Detector Module
+### Test the OOD Detector
 Again, testing the OOD detector is rather argument poor, as all the arguments are stored inside the checkpoint files and do not have to be specified manually.
 ```shell
 python test_detector.py --model vit --attack --device cuda --select-gpu 0 --num-workers 8 --classification-ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth --detector-ckpt-path saved_models/trained_detector/vit_t16_224SupCE_id_cifar10_ood_svhn_bs32_best_accuracy.pth
