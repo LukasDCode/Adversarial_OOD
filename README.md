@@ -68,7 +68,7 @@ If more epochs are desired, just increase the ```--train-steps``` argument. 3125
 Training 1 epoch took ~16h on the machine used for development.
 Both datasets also get perturbed x times by the PGD attack according to the gradients of the classifier (here: x = restarts * iterations)
 ```shell
-python train_detector --exp-name train_vit_detector_cifar10 --model vit --model-arch t16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --ood-data-dir data/ --ood-dataset svhn --train-steps 31250 --lr 0.01 --wd 1e-5 --device cuda --select-gpu 0 --num-workers 8 --batch-size 32 --method SupCE --attack --noise normal --iterations 5 --restarts 2 --checkpoint-path saved_models/pretrained/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz --classifier-ckpt-path saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth
+python train_detector --train-steps 31250 --model vit --model-arch t16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --ood-data-dir data/ --ood-dataset svhn --lr 0.01 --wd 1e-5 --device cuda --select-gpu 0 --num-workers 8 --batch-size 32 --method SupCE --attack --noise normal --iterations 5 --restarts 2 --checkpoint-path saved_models/pretrained/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz --classifier-ckpt-path saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth
 ```
 > :warning: Training a detector model is **VERY** slow, as the input samples run through the classifier multiple times (= restarts * iterations) to find an optimal perturbation.
 > 1 epoch takes ~16h on the machine used for development!!
@@ -83,6 +83,7 @@ Again, testing the OOD detector is rather argument poor, as all the arguments ar
 python test_detector.py --model vit --attack --device cuda --select-gpu 0 --num-workers 8 --classification-ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth --detector-ckpt-path saved_models/trained_detector/vit_t16_224SupCE_id_cifar10_ood_svhn_bs32_best_accuracy.pth
 ```
 > :warning: Testing a detector model is again on the slower side, as the input samples have to run through the classifier multiple times again to ensure robustness.
+> Testing the detector takes as much time as training it for 1 epoch.
 
 In case the paths and the trained models have not been changed yet, the paths should work as they are in the command above.
 
