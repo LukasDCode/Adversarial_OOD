@@ -59,9 +59,7 @@ By default the trained classifier gets placed in the ```saved_models/trained_cla
 
 
 ## Train an OOD Detector
-> :warning: Executing these commands takes a lot of time!
-
-| WARNING :warning: : Executing these commands takes a lot of time! |
+| :warning: WARNING : Executing these commands takes a lot of time! |
 |-------------------------------------------------------------------|
 
 Training a ViT detector takes an already trained classifier into account, as the PGD attack is performed on the gradients of the classifier.
