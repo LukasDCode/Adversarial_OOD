@@ -76,3 +76,31 @@ def get_train_valid_dataloaders(args):
         raise ValueError('Wrong dataset specified in args.')
 
     return train_dataloader, valid_dataloader
+
+
+def get_mixed_test_dataloader(args):
+    # initial_batch_size = args.batch_size
+    # args.batch_size = int(initial_batch_size/2)
+
+    if args.dataset.lower() == "cifar10":
+        id_test_dataloader = get_cifar10_test_dataloader(args)  # get ID
+    elif args.dataset.lower() == "cifar100":
+        id_test_dataloader = get_cifar100_test_dataloader(args)
+    elif args.dataset.lower() == "svhn":
+        id_test_dataloader = get_SVHN_test_dataloader(args)
+    else:
+        raise ValueError('Wrong ID dataset specified in args.')
+
+    if args.ood_dataset.lower() == "cifar10":
+        ood_test_dataloader = get_cifar10_test_dataloader(args)  # get ID
+    elif args.ood_dataset.lower() == "cifar100":
+        ood_test_dataloader = get_cifar100_test_dataloader(args)
+    elif args.ood_dataset.lower() == "svhn":
+        ood_test_dataloader = get_SVHN_test_dataloader(args)
+    else:
+        raise ValueError('Wrong OOD dataset specified in args.')
+
+    # args.batch_size = initial_batch_size
+    test_dataloader = get_mixed_dataloader(args, id_test_dataloader.dataset, ood_test_dataloader.dataset)
+
+    return test_dataloader

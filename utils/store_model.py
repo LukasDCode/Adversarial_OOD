@@ -48,44 +48,13 @@ def save_model(args, classification_model, optimizer):
 
 
 
-def load_model(args):
-
-    """
-    try:
-        _ = args.classification_ckpt # args.classification_ckpt
-        is_classification_model = True
-    except AttributeError:
-        is_classification_model = False
-
-    if is_classification_model:
-        if args.classification_ckpt: # args.classification_ckpt #checkpoint_path
-            checkpoint_path = args.classification_ckpt # args.classification_ckpt
-        else:
-            checkpoint_path = "utils/models/saved_models/classifier/resnet_32SupCE_cifar10_bs256.0_lr0.001_epochs1_1669057507.pth" #"_save/classification/TEST"
-            print("Loading this model will not work - no TEST model available")
-            # "utils/models/saved_models/classifier/test.pth"
-            # "/nfs/data3/koner/contrastive_ood/_save/vit/vit_224SupCE_cifar10_bs512_lr0.01_wd1e-05_temp_0.1_210316_122535/checkpoints/ckpt_epoch_50.pth"
-    else:
-        if args.detection_ckpt:
-            checkpoint_path = args.detection_checkpoint_path
-        else:
-            checkpoint_path = "_save/detection/TEST"
-            print("Loading this model will not work - no TEST model available")
-    """
-
+def load_classifier(args):
     if args.classification_ckpt:  # args.classification_ckpt #checkpoint_path
         checkpoint_path = args.classification_ckpt  # args.classification_ckpt
     else:
         raise ValueError("No checkpoint path for the classifier was specified")
 
     checkpoint = torch.load(checkpoint_path)
-
-    """
-    if is_classification_model:
-        args.dataset = checkpoint['dataset']
-    else:
-        args.data_in = checkpoint['dataset']
-    """
 
     args.dataset = checkpoint['dataset']
 
@@ -96,6 +65,55 @@ def load_model(args):
     args.image_size = checkpoint['image_size']
     args.batch_size = checkpoint['batch_size'] # 64
     args.patch_size = checkpoint['patch_size'] # 16
+
+    args.emb_dim = checkpoint['emb_dim'] # 768
+    args.mlp_dim = checkpoint['mlp_dim'] # 3072
+    args.num_heads = checkpoint['num_heads'] # 12
+    args.num_layers = checkpoint['num_layers'] # 12
+    args.attn_dropout_rate = checkpoint['attn_dropout_rate']
+    args.dropout_rate = checkpoint['dropout_rate']
+
+    for key in list(checkpoint['model_state_dict'].keys()):
+        checkpoint['model_state_dict'][key.replace('module.', '')] = checkpoint['model_state_dict'].pop(key)
+
+    model = get_model_from_args(args, args.model, args.num_classes)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    return model
+
+
+def load_detector(args):
+    if args.detector_ckpt_path:  # args.classification_ckpt #checkpoint_path
+        checkpoint_path = args.detector_ckpt_path  # args.classification_ckpt
+    else:
+        raise ValueError("No checkpoint path for the classifier was specified")
+
+    checkpoint = torch.load(checkpoint_path)
+
+    args.model = checkpoint['model_name']
+    args.method = checkpoint['loss']
+    args.dataset = checkpoint['dataset']
+    args.ood_dataset = checkpoint['ood_dataset']
+    args.num_classes = checkpoint['num_classes'] # 10 or 100
+
+    args.image_size = checkpoint['image_size']
+    args.batch_size = checkpoint['batch_size'] # 64
+    args.patch_size = checkpoint['patch_size'] # 16
+
+    # TODO REMOVE
+    try:
+        args.eps = checkpoint['eps'],
+        args.norm = checkpoint['norm']
+        args.iterations = checkpoint['iterations']
+        args.restarts = checkpoint['restarts']
+        args.stepsize = ['stepsize']
+        args.noise = ['noise']
+    except:
+        args.eps = 0.01
+        args.norm = "inf"
+        args.iterations = 5
+        args.restarts = 2
+        args.stepsize = 0.01
+        args.noise = "normal"
 
     args.emb_dim = checkpoint['emb_dim'] # 768
     args.mlp_dim = checkpoint['mlp_dim'] # 3072

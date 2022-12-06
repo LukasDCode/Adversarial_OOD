@@ -285,6 +285,49 @@ class SVHNDataLoader(DataLoader):
 
 
 
+def create_mixed_test_dataloaders(config,no_train_aug=False, out_dataset=False):
+    id_dataset = config.dataset
+    if config.model!='vit':
+        config.deit=False
+    else:
+        # CHANGE commented out after 'deit'
+        config.deit ='deit' #in config.exp_name.lower() or 'deit' in os.path.basename(config.checkpoint_path) #
+    # create id dataloader
+    print("Creating dataloaders for {0} with network {1} and albumentations {2}".format(id_dataset, config.model, config.albumentation))
+    id_test_dataloader = eval("{}DataLoader".format(id_dataset))(
+        data_dir=config.data_dir, # os.path.join(config.data_dir, config.id_dataset),
+        image_size=config.image_size,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        split='train',
+        contrastive=config.contrastive,
+        albumentation=config.albumentation,
+        net=config.model,
+        no_train_aug=no_train_aug,
+        in_dataset= config.dataset,
+        deit = config.deit) # for resnet where mean is different for each in dataset
+
+    # svhn dataloader is written in capital letters
+    ood_dataset = config.ood_dataset.upper() if config.ood_dataset == "svhn" else config.ood_dataset
+    # create ood dataloader
+    print("Creating OOD dataloaders for {0} with network {1} and albumentations {2}".format(ood_dataset, config.model,
+                                                                                        config.albumentation))
+    ood_test_dataloader = eval("{}DataLoader".format(ood_dataset))(
+        data_dir=config.ood_data_dir,  # os.path.join(config.data_dir, config.id_dataset),
+        image_size=config.image_size,
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        split='train',
+        contrastive=config.contrastive,
+        albumentation=config.albumentation,
+        net=config.model,
+        no_train_aug=no_train_aug,
+        in_dataset=config.ood_dataset,
+        deit=config.deit)  # for resnet where mean is different for each in dataset
+
+    test_dataloader = get_mixed_dataloader(config, id_test_dataloader.dataset, ood_test_dataloader.dataset)
+
+    return test_dataloader
 
 
 
@@ -361,7 +404,7 @@ def get_mixed_dataloader(args, dataset_id, dataset_ood):
                 batch_size=int(args.batch_size/2), # 64/2=32 --> 32 elements of ID data and 32 elements of OOD data
                 shuffle=True,
                 num_workers=args.num_workers,
-                pin_memory=False
+                pin_memory=True # this gives a slight performance boost, but nothing drastic
             )
 
 
