@@ -301,8 +301,6 @@ def main(config, device, device_ids):
             write_json(best_curr_acc,os.path.join(config.checkpoint_dir,'acc.json'))
 
 
-
-
 # CHANGE
 def save_vit_model(args, model, optimizer, epoch):
 
