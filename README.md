@@ -18,9 +18,9 @@ data/svhn/<place files here>
 
 #### Pre-Trained Models
 To run the following code you have to download pre-trained models and place them in ```saved_models/pretrained/```. [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html), [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) and [SVHN](http://ufldl.stanford.edu/housenumbers/) datasets  
-The following section explains mostly the use of T16 and B16 ViT models with patch size 16 and image size 224 which can be downloaded like so:  
+The following section explains mostly the use of B16 and T16 ViT models with patch size 16 and image size 224 which can be downloaded like so:  
 ```shell
-wget https://storage.googleapis.com/vit_models/augreg/S_16-i21k-300ep-lr_0.001-aug_light1-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz
+wget https://storage.googleapis.com/vit_models/augreg/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 wget https://storage.googleapis.com/vit_models/augreg/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz
 ```
 But in order to download other models refer to [the official github page](https://github.com/rwightman/pytorch-image-models/blob/main/timm/models/vision_transformer.py#L53).
