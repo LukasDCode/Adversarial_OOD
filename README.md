@@ -59,8 +59,8 @@ By default the trained classifier gets placed in the ```saved_models/trained_cla
 
 
 ## Train an OOD Detector
-| :warning: WARNING : Executing these commands takes a lot of time! |
-|-------------------------------------------------------------------|
+| :warning: WARNING: Executing these commands takes a lot of time! :warning: |
+|----------------------------------------------------------------------------|
 
 Training a ViT detector takes an already trained classifier into account, as the PGD attack is performed on the gradients of the classifier.
 The following command trains a tiny ViT model with batch size 16 on cifar10 as ID data and SVHN as OOD data for 10 epochs.
