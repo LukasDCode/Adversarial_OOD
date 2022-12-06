@@ -8,10 +8,8 @@ import numpy as np
 from vit.src.model import VisionTransformer as ViT
 from vit.src.utils import MetricTracker, accuracy
 from utils.ood_detection.ood_detector import MiniNet, CNN_IBP
-from utils.normalize_image_data import normalize_general_image_data, normalize_cifar10_image_data, normalize_cifar100_image_data, normalize_SVHN_image_data
-#from train_ood_detector import get_model_from_args
-from utils.load_data import get_train_valid_dataloaders, get_test_dataloader
-from utils.store_model import save_model, load_model
+from utils.load_data import get_test_dataloader
+from utils.store_model import load_classifier
 
 
 def get_model_from_args(args, model_name, num_classes):
@@ -40,153 +38,34 @@ def get_model_from_args(args, model_name, num_classes):
     return model
 
 
-def train_classifier(args):
-    if args.device == "cuda": torch.cuda.empty_cache()
-
-    classification_model = get_model_from_args(args, args.model, num_classes=args.num_classes)
-    # TODO also do different losses for vit model
-    if args.loss == "ce":
-        loss_fn = torch.nn.CrossEntropyLoss()
-    else:
-        print("Error - specified loss not available, currently only working with CrossEntropy loss")
-        return
-    optimizer = torch.optim.SGD(classification_model.parameters(), lr=args.lr, momentum=args.momentum)
-
-    train_dataloader, valid_dataloader = get_train_valid_dataloaders(args)
-
-    epoch_number = 0
-    for epoch in range(args.epochs):
-        print('EPOCH {}:'.format(epoch_number + 1))
-
-        classification_model.train(True)
-        avg_loss = train_one_epoch(args, classification_model, loss_fn, optimizer, train_dataloader)
-        # We don't need gradients on to do reporting
-        classification_model.train(False)  # same as model.eval()
-
-        with torch.no_grad():
-            # Error calculation
-            running_valid_error = 0
-            running_vloss = 0.0
-            for i, (vinputs, vlabels) in enumerate(valid_dataloader):
-                vinputs, vlabels = vinputs.to(device=args.device), vlabels.to(device=args.device)
-                if args.dataset.lower() == "cifar10":
-                    normalized_vinputs = normalize_cifar10_image_data(vinputs)
-                elif args.dataset.lower() == "cifar100":
-                    normalized_vinputs = normalize_cifar100_image_data(vinputs)
-                elif args.dataset.lower() == "svhn":
-                    normalized_vinputs = normalize_SVHN_image_data(vinputs)
-                else:
-                    normalized_vinputs = normalize_general_image_data(vinputs)
-                voutputs = classification_model(normalized_vinputs)
-                # voutputs: [batch_size, num_classes]
-                # vlabels:  [batch_size]
-                vloss = loss_fn(voutputs, vlabels)
-                running_vloss += vloss.item()
-                running_valid_error += error_criterion(voutputs, vlabels)
-                if args.device == "cuda": torch.cuda.empty_cache()
-
-            avg_vloss = running_vloss / (i + 1)
-            print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
-
-            # Error
-            avg_valid_error = running_valid_error / (i + 1)
-            print("Average Validation Error:", avg_valid_error.item())
-
-        epoch_number += 1
-
-    if args.save_model:
-        save_model(args, classification_model, optimizer)
-
-
-def train_one_epoch(args, classification_model, loss_fn, optimizer, train_dataloader):
-    running_loss, last_loss = 0., 0.
-
-    for i, (inputs, labels) in enumerate(tqdm(train_dataloader)):
-        # some dataloaders return a list within a list with duplicates, but we only need one of those doubles
-        if isinstance(inputs, list):
-            inputs = inputs[0]
-
-        inputs, labels = inputs.to(device=args.device), labels.to(device=args.device)
-        inputs.requires_grad = True  # possible because leaf of the acyclic graph
-        if args.dataset.lower() == "cifar10":
-            normalized_inputs = normalize_cifar10_image_data(inputs)
-        elif args.dataset.lower() == "cifar100":
-            normalized_inputs = normalize_cifar100_image_data(inputs)
-        elif args.dataset.lower() == "svhn":
-            normalized_inputs = normalize_SVHN_image_data(inputs)
-        else:
-            normalized_inputs = normalize_general_image_data(inputs)
-        # inputs:              [batch_size, channels, img_size, img_size]
-        # normalized_inputs:   [batch_size, channels, img_size, img_size]
-
-        optimizer.zero_grad()  # Zero gradients for every batch
-        outputs = classification_model(normalized_inputs)
-        # outputs:  [batch_size, num_classes]
-        # labels:   [batch_size]
-        loss = loss_fn(outputs, labels)  # Compute the loss and its gradients
-        loss.backward()
-        optimizer.step()  # Adjust learning weights
-        running_loss += loss.item()  # Gather data and report
-        del normalized_inputs, loss  # delete for performance reasons to free up cuda memory
-        if args.device == "cuda": torch.cuda.empty_cache()
-
-        print_interval = 16384/args.batch_size
-        if i % print_interval == print_interval - 1:
-            last_loss = running_loss / print_interval  # loss per batch
-            print("   Batch", i + 1, "loss:", last_loss)
-            running_loss = 0.
-
-    return last_loss
-
-
 def test_classifier(args):
-    model = load_model(args)
+    classifier = load_classifier(args)
 
     # metric tracker
     metric_names = ['loss', 'acc1', 'acc5']
     metrics = MetricTracker(*[metric for metric in metric_names], writer=None)
     log = {}
+    losses = []
+    acc1s = []
+    acc5s = []
 
     # get a dataloader mixed 50:50 with ID and OOD data and labels of 0 (ID) and 1 (OOD)
     test_dataloader = get_test_dataloader(args)
 
     with torch.no_grad():
-        model.eval()
+        classifier.eval()
+        criterion = torch.nn.CrossEntropyLoss().to(args.device)  # CHANGE appended to device and placed outside of loop
         running_test_error = 0
         for epoch_nr, (inputs, labels) in enumerate(tqdm(test_dataloader)):
             # from ViT training validation
             metrics.reset()
-
             inputs, labels = inputs.to(device=args.device), labels.to(device=args.device)
-            """
-            if args.dataset.lower() == "cifar10":
-                normalized_inputs = normalize_cifar10_image_data(inputs)
-            elif args.dataset.lower() == "cifar100":
-                normalized_inputs = normalize_cifar100_image_data(inputs)
-            elif args.dataset.lower() == "svhn":
-                normalized_inputs = normalize_SVHN_image_data(inputs)
-            else:
-                normalized_inputs = normalize_general_image_data(inputs)  # no detach because requires gradient
-            # normalized inputs values are in the range [-2;2.2]
-            outputs = model(normalized_inputs)
-            """
-
-            outputs = model(inputs)
+            outputs = classifier(inputs)
 
             running_test_error += error_criterion(outputs.squeeze(1), labels)
             if args.device == "cuda": torch.cuda.empty_cache()
 
-            # from ViT training validation
-            # valid_dataloader = cifar10-Dataloader-Object
-            # criterion = CrossEntropyLoss()
-            # valid_metrics = MetricTracker
-            # device = device cuda or cpu
-            #result = valid_epoch(epoch_nr+1, model, valid_dataloader, criterion, valid_metrics, device)
 
-            losses = []
-            acc1s = []
-            acc5s = []
-            criterion = torch.nn.CrossEntropyLoss()
 
             loss = criterion(outputs, labels)
             acc1, acc5 = accuracy(outputs, labels, topk=(1, 5))
@@ -194,26 +73,26 @@ def test_classifier(args):
             acc1s.append(acc1.item())
             acc5s.append(acc5.item())
 
-        loss = np.mean(losses)
-        acc1 = np.mean(acc1s)
-        acc5 = np.mean(acc5s)
-        if metrics.writer is not None:
-            metrics.writer.set_step(epoch_nr, 'valid')
-        metrics.update('loss', loss)
-        metrics.update('acc1', acc1)
-        metrics.update('acc5', acc5)
+    loss = np.mean(losses)
+    acc1 = np.mean(acc1s)
+    acc5 = np.mean(acc5s)
+    if metrics.writer is not None:
+        metrics.writer.set_step(epoch_nr, 'valid')
+    metrics.update('loss', loss)
+    metrics.update('acc1', acc1)
+    metrics.update('acc5', acc5)
 
-        log.update(**{'val_' + k: v for k, v in metrics.result().items()})
+    log.update(**{'val_' + k: v for k, v in metrics.result().items()})
 
-        # print logged informations to the screen
-        for key, value in log.items():
-            print('    {:15s}: {}'.format(str(key), value))
+    # print logged informations to the screen
+    for key, value in log.items():
+        print('    {:15s}: {}'.format(str(key), value))
 
-        # Error
-        avg_valid_error = running_test_error / (epoch_nr  + 1)
-        print("\nOld metrics")
-        print("Average Test Error:", avg_valid_error.item())
-        print("Finished Testing the Model")
+    # Error
+    avg_valid_error = running_test_error / (epoch_nr  + 1)
+    print("\nOld metrics")
+    print("Average Test Error:", avg_valid_error.item())
+    print("Finished Testing the Model")
 
 
 def error_criterion(outputs, labels):
@@ -233,26 +112,6 @@ def parse_args():
     parser.add_argument('--device', type=str, default="cuda", help='str - cpu or cuda to calculate the tensors on')
     parser.add_argument("--num-workers", type=int, default=8, help="number of workers")
     parser.add_argument("--n-gpu", type=int, default=2, help="number of gpus to use")
-
-    #parser.add_argument('--dataset', type=str, default="cifar10", help='str - the in-distribution dataset "cifar10", "cifar100" or "svhn"')
-    #parser.add_argument('--num_classes', type=int, default=10, help='int - amount of different clsases in the dataset')
-    #parser.add_argument('--loss', type=str, default="ce", help='str - how the loss is calculated for the ood sample "bce" ("maxconf" not working yet)')
-
-    #parser.add_argument('--epochs', type=int, default=10, help='int - amount of training epochs')
-    #parser.add_argument('--lr', type=float, default=0.01, help='float - learning rate of the model')
-    #parser.add_argument('--lr_decay', type=float, default=0.5, help='float - how much the lr drops after every unsuccessfull step')
-    #parser.add_argument('--lr_gain', type=float, default=1.1, help='float - how much the lr raises after every successfull step')
-    #parser.add_argument('--momentum', type=float, default=0.9, help='float - factor to change the model weights in gradient descent')
-    #parser.add_argument('--stepsize', type=float, default=0.01, help='float - factor to change the model weights in gradient descent of the adversarial attack')
-    #parser.add_argument('--num_heads', type=int, default=12, help='int - amount of attention heads for the vit model')
-    #parser.add_argument('--num_layers', type=int, default=12, help='int - amount of parallel layers doing the calculations for the vit model')
-
-    #parser.add_argument('--img_size', type=int, default=32, help='int - amount of pixel for the images')
-    #parser.add_argument('--batch_size', type=int, default=256, help='int - amount of images in the train, valid or test batches')
-
-
-    # boolean parameters, false until the flag is set --> then true
-    #parser.add_argument('--test', action='store_true', help='flag to set testing to true and test a model')
 
     return parser.parse_args()
 
