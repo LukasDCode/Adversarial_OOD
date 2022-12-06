@@ -87,7 +87,7 @@ def valid_epoch(epoch, model, data_loader, criterion, metrics, device=torch.devi
             batch_data = batch_data.to(device)
             batch_target = batch_target.to(device)
 
-            batch_pred = model(batch_data, eval = config.eval)
+            batch_pred = model(batch_data, eval=args.eval)
             loss = criterion(batch_pred, batch_target)
             acc1, acc5 = accuracy(batch_pred, batch_target, topk=(1, 5))
             losses.append(loss.item())
@@ -125,12 +125,12 @@ def save_model(save_dir, epoch, model, optimizer, lr_scheduler, device_ids, best
         torch.save(state, filename)
 
 
-def main(config, device, device_ids):
+def main(args, device, device_ids):
 
     # tensorboard
-    if config.tensorboard:
-        if not config.test:
-            writer = TensorboardWriter(config.summary_dir, config.tensorboard)
+    if args.tensorboard:
+        if not args.test:
+            writer = TensorboardWriter(args.summary_dir, args.tensorboard)
         else:
             writer = None
     else:
@@ -144,34 +144,34 @@ def main(config, device, device_ids):
     # create model
     print("create model")
     model = VisionTransformer(
-             image_size=(config.image_size, config.image_size),
-             patch_size=(config.patch_size, config.patch_size),
-             emb_dim=config.emb_dim,
-             mlp_dim=config.mlp_dim,
-             num_heads=config.num_heads,
-             num_layers=config.num_layers,
-             num_classes=config.num_classes,
-             attn_dropout_rate=config.attn_dropout_rate,
-             dropout_rate=config.dropout_rate,
-             contrastive=config.contrastive,
+             image_size=(args.image_size, args.image_size),
+             patch_size=(args.patch_size, args.patch_size),
+             emb_dim=args.emb_dim,
+             mlp_dim=args.mlp_dim,
+             num_heads=args.num_heads,
+             num_layers=args.num_layers,
+             num_classes=args.num_classes,
+             attn_dropout_rate=args.attn_dropout_rate,
+             dropout_rate=args.dropout_rate,
+             contrastive=args.contrastive,
              timm=True,
-             head=config.head)#'jx' in config.checkpoint_path)
+             head=args.head)#'jx' in args.checkpoint_path)
     # for cutmix and mixup
     mixup_fn = None
-    mixup_active = config.mixup > 0 or config.cutmix > 0. or config.cutmix_minmax is not None
+    mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None
     if mixup_active:
         print("Activating cutmix and mixup")
         mixup_fn = Mixup(
-            mixup_alpha=config.mixup, cutmix_alpha=config.cutmix, cutmix_minmax=config.cutmix_minmax,
-            prob=config.mixup_prob, switch_prob=config.mixup_switch_prob, mode=config.mixup_mode,
-            label_smoothing=config.smoothing, num_classes=config.num_classes)
+            mixup_alpha=args.mixup, cutmix_alpha=args.cutmix, cutmix_minmax=args.cutmix_minmax,
+            prob=args.mixup_prob, switch_prob=args.mixup_switch_prob, mode=args.mixup_mode,
+            label_smoothing=args.smoothing, num_classes=args.num_classes)
 
     # load checkpoint
-    if config.checkpoint_path:
-        state_dict = load_checkpoint(config.checkpoint_path, new_img=config.image_size, emb_dim=config.emb_dim,
-                                     layers= config.num_layers,patch=config.patch_size)
-        print("Loading pretrained weights from {}".format(config.checkpoint_path))
-        if not config.test_contrastive_acc and  not config.eval and config.num_classes != state_dict['classifier.weight'].size(0)  :#not
+    if args.checkpoint_path:
+        state_dict = load_checkpoint(args.checkpoint_path, new_img=args.image_size, emb_dim=args.emb_dim,
+                                     layers=args.num_layers,patch=args.patch_size)
+        print("Loading pretrained weights from {}".format(args.checkpoint_path))
+        if not args.test_contrastive_acc and not args.eval and args.num_classes != state_dict['classifier.weight'].size(0):#not
             del state_dict['classifier.weight']
             del state_dict['classifier.bias']
             print("re-initialize fc layer")
@@ -188,84 +188,84 @@ def main(config, device, device_ids):
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # create dataloader
-    config.model = 'vit'
+    args.model = 'vit'
     # CHANGE svhn dataloader is in capital letters, later reset to lower case
-    if config.dataset == 'svhn': config.dataset = 'SVHN'
-    train_dataloader , valid_dataloader = create_dataloaders(config)
-    if config.dataset == 'SVHN': config.dataset = 'svhn'
+    if args.dataset == 'svhn': args.dataset = 'SVHN'
+    train_dataloader , valid_dataloader = create_dataloaders(args)
+    if args.dataset == 'SVHN': args.dataset = 'svhn'
     # training criterion
     print("create criterion and optimizer")
-    if config.contrastive:
+    if args.contrastive:
         print("Using contrastive loss...")
-        criterion = SupConLoss(temperature=config.temp, similarity_metric=config.sim_metric).to(device)
+        criterion = SupConLoss(temperature=args.temp, similarity_metric=args.sim_metric).to(device)
     else:
-        if config.mixup > 0.:
+        if args.mixup > 0.:
             print("Criterion using mixup ")
             # smoothing is handled with mixup label transform
             criterion = SoftTargetCrossEntropy().to(device)
-        elif config.smoothing:
+        elif args.smoothing:
             print("Criterion using labelsmoothong ")
-            criterion = LabelSmoothingCrossEntropy(smoothing=config.smoothing).to(device)
+            criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing).to(device)
         else:
             print("Criterion using only crossentropy ")
             criterion = torch.nn.CrossEntropyLoss().to(device)
 
-    if config.contrastive and config.head=="both":
+    if args.contrastive and args.head=="both":
         print("Using both loss of supcon and crossentropy")
         criterion2 = nn.CrossEntropyLoss().to(device)
     else:
         criterion2 = None
 
     # create optimizers and learning rate scheduler
-    if config.opt =="AdamW":
+    if args.opt =="AdamW":
         print("Using AdmW optimizer")
-        optimizer = torch.optim.AdamW(params=model.parameters(),lr=config.lr,weight_decay=config.wd)
+        optimizer = torch.optim.AdamW(params=model.parameters(),lr=args.lr,weight_decay=args.wd)
     else:
         optimizer = torch.optim.SGD(
             params=model.parameters(),
-            lr=config.lr,
-            weight_decay=config.wd,
+            lr=args.lr,
+            weight_decay=args.wd,
             momentum=0.9)
-    if config.cosine:
+    if args.cosine:
         lr_scheduler=None
     else:
         lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer=optimizer,
-            max_lr=config.lr,
-            pct_start=config.warmup_steps / config.train_steps,
-            total_steps=config.train_steps)
+            max_lr=args.lr,
+            pct_start=args.warmup_steps / args.train_steps,
+            total_steps=args.train_steps)
 
 
     # start training
     print("start training")
     best_acc = 0.0
     best_epoch = 0
-    config.epochs = config.train_steps // len(train_dataloader)
-    print("length of train loader : ",len(train_dataloader),' and total epoch ',config.epochs)
-    for epoch in range(1, config.epochs + 1):
-        if config.cosine:
-            adjust_learning_rate(config, optimizer, epoch)
+    args.epochs = args.train_steps // len(train_dataloader)
+    print("length of train loader : ",len(train_dataloader),' and total epoch ',args.epochs)
+    for epoch in range(1, args.epochs + 1):
+        if args.cosine:
+            adjust_learning_rate(args, optimizer, epoch)
         for param_group in optimizer.param_groups:
             print("learning rate at {0} epoch is {1}".format(epoch, param_group['lr']))
 
         log = {'epoch': epoch}
 
-        if not config.eval:
+        if not args.eval:
             # train the model
             model.train()
             result = train_epoch(epoch, model, train_dataloader, criterion, optimizer, lr_scheduler, train_metrics, device,
-                                 contrastive=config.contrastive, test_contrastive_acc=config.test_contrastive_acc, method=config.method,
-                                 head=config.head, criterion2=criterion2, mixup_fn = mixup_fn)
+                                 contrastive=args.contrastive, test_contrastive_acc=args.test_contrastive_acc, method=args.method,
+                                 head=args.head, criterion2=criterion2, mixup_fn = mixup_fn)
             log.update(result)
 
         # validate the model
-        if not config.contrastive:
+        if not args.contrastive:
             model.eval()
             result = valid_epoch(epoch, model, valid_dataloader, criterion, valid_metrics, device)
             log.update(**{'val_' + k: v for k, v in result.items()})
 
         # best acc
-        if config.test_contrastive_acc or config.eval or not config.contrastive:
+        if args.test_contrastive_acc or args.eval or not args.contrastive:
             if log['val_acc1'] > best_acc:
                 best_acc = log['val_acc1']
                 best_epoch = epoch
@@ -274,31 +274,31 @@ def main(config, device, device_ids):
                 # CHANGE
                 # save the model with the best accuracy
                 print("save the model with the best accuracy")
-                save_vit_model(config, model, optimizer, epoch)
+                save_vit_model(args, model, optimizer, epoch)
         else:
             best = False
 
         """
         # save model
-        if not config.test_contrastive_acc and not config.test:
+        if not args.test_contrastive_acc and not args.test:
 
             #CHANGE
             save_dir = "saved_models/trained_classifier/automatic_vit/"
 
             print("Saved vit model automatically")
-            save_model(save_dir, epoch, model, optimizer, lr_scheduler, device_ids, best, config.save_freq)
+            save_model(save_dir, epoch, model, optimizer, lr_scheduler, device_ids, best, args.save_freq)
         """
 
         # print logged informations to the screen
         for key, value in log.items():
             print('    {:15s}: {}'.format(str(key), value))
 
-    if config.test_contrastive_acc or config.eval or not config.contrastive:
+    if args.test_contrastive_acc or args.eval or not args.contrastive:
         print("Best accuracy : ",best_acc, ' for ',best_epoch)# saving class mean
         best_curr_acc = {'best_acc': best_acc,'best_epoch': best_epoch,
                          'curr_acc': log['val_acc1'],'curr_epoch': epoch}
-        if config.tensorboard:
-            write_json(best_curr_acc,os.path.join(config.checkpoint_dir,'acc.json'))
+        if args.tensorboard:
+            write_json(best_curr_acc,os.path.join(args.checkpoint_dir,'acc.json'))
 
 
 # CHANGE
@@ -342,7 +342,7 @@ def save_vit_model(args, model, optimizer, epoch):
 
 
 if __name__ == '__main__':
-    config = get_train_config()
-    device, device_ids = setup_device(config.n_gpu)
-    main(config, device, device_ids)
+    args = get_train_config()
+    device, device_ids = setup_device(args.n_gpu)
+    main(args, device, device_ids)
 
