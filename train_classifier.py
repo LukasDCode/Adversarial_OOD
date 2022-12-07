@@ -345,4 +345,5 @@ if __name__ == '__main__':
     args = get_train_config()
     device, device_ids = setup_device(args.n_gpu)
     main(args, device, device_ids)
+    print("finished all executions")
 

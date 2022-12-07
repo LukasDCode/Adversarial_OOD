@@ -99,21 +99,12 @@ def load_detector(args):
     args.batch_size = checkpoint['batch_size'] # 64
     args.patch_size = checkpoint['patch_size'] # 16
 
-    # TODO REMOVE
-    try:
-        args.eps = checkpoint['eps'],
-        args.norm = checkpoint['norm']
-        args.iterations = checkpoint['iterations']
-        args.restarts = checkpoint['restarts']
-        args.stepsize = ['stepsize']
-        args.noise = ['noise']
-    except:
-        args.eps = 0.01
-        args.norm = "inf"
-        args.iterations = 5
-        args.restarts = 2
-        args.stepsize = 0.01
-        args.noise = "normal"
+    args.eps = checkpoint['eps']
+    args.norm = checkpoint['norm']
+    args.iterations = checkpoint['iterations']
+    args.restarts = checkpoint['restarts']
+    args.stepsize = checkpoint['stepsize']
+    args.noise = checkpoint['noise']
 
     args.emb_dim = checkpoint['emb_dim'] # 768
     args.mlp_dim = checkpoint['mlp_dim'] # 3072

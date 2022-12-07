@@ -533,4 +533,5 @@ if __name__ == '__main__':
         args.num_workers = 0
 
     main(args, args.device)
+    print("finished all executions")
 
