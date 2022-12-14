@@ -95,6 +95,14 @@ def load_detector(args):
     args.ood_dataset = checkpoint['ood_dataset']
     args.num_classes = checkpoint['num_classes'] # 10 or 100
 
+    # try except, because checkpoint from the 7.12. does not contain these properties
+    try:
+        args.method = checkpoint['method']
+        args.contrastive = checkpoint['contrastive']
+    except:
+        args.method = "SimCLR"
+        args.contrastive = False
+
     args.image_size = checkpoint['image_size']
     args.batch_size = checkpoint['batch_size'] # 64
     args.patch_size = checkpoint['patch_size'] # 16

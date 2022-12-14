@@ -272,9 +272,13 @@ class LSUN_resizeDataLoader(DataLoader):
             shuffle=False,
             num_workers=num_workers)
 class SVHNDataLoader(DataLoader):
-    def __init__(self, data_dir, split='val', image_size=224, batch_size=16, num_workers=8,contrastive=False, albumentation=True, net='vit',no_train_aug=False, in_dataset=None,deit=False):
+    def __init__(self, data_dir, split='val', image_size=224, batch_size=16, num_workers=8, contrastive=False, albumentation=True, net='vit',no_train_aug=False, in_dataset=None,deit=False):
         train = False
-        transform = get_transform(train=train, image_size=image_size, dataset=in_dataset,network=net, deit=deit)
+        # CHANGE
+        #transform = get_transform(train=train, image_size=image_size, dataset=in_dataset,network=net, deit=deit)
+        transform = get_transform(contrastive=contrastive, train=train, image_size=image_size, dataset=in_dataset,
+                                  albumentations=albumentation, network=net,
+                                  no_train_aug=no_train_aug, deit=deit)
 
         self.dataset = SVHN(root=os.path.join(data_dir, 'SVHN'), transform=transform, download=True)
         super(SVHNDataLoader, self).__init__(
