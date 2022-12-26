@@ -7,16 +7,12 @@ import torch
 import torchvision
 import matplotlib.pyplot as plt
 
-from utils.cifar100_labels import cifar100_labels
 from utils.torch_to_pil import tensor_to_pil_image
-
-import vit.src.data_loaders as DataLoader
 from vit.src.model import VisionTransformer as ViT
 from utils.ood_detection.ood_detector import MiniNet, CNN_IBP
-from utils.ood_detection.data_loaders import create_mixed_test_dataloaders
 from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf
 from utils.store_model import load_classifier, load_detector
-from train_detector import get_noise_from_args, shuffle_batch_elements
+from train_detector import get_noise_from_args
 
 from utils.cifar10_labels import cifar10_labels
 from utils.cifar100_labels import cifar100_labels
