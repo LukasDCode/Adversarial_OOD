@@ -191,7 +191,7 @@ def main(args, device, device_ids):
     args.model = 'vit'
     # CHANGE svhn dataloader is in capital letters, later reset to lower case
     if args.dataset == 'svhn': args.dataset = 'SVHN'
-    train_dataloader , valid_dataloader = create_dataloaders(args)
+    train_dataloader, valid_dataloader = create_dataloaders(args)
     if args.dataset == 'SVHN': args.dataset = 'svhn'
     # training criterion
     print("create criterion and optimizer")
@@ -269,25 +269,13 @@ def main(args, device, device_ids):
             if log['val_acc1'] > best_acc:
                 best_acc = log['val_acc1']
                 best_epoch = epoch
-                best = True
 
                 # CHANGE
                 # save the model with the best accuracy
                 print("save the model with the best accuracy")
                 save_vit_model(args, model, optimizer, epoch)
-        else:
-            best = False
 
-        """
-        # save model
-        if not args.test_contrastive_acc and not args.test:
 
-            #CHANGE
-            save_dir = "saved_models/trained_classifier/automatic_vit/"
-
-            print("Saved vit model automatically")
-            save_model(save_dir, epoch, model, optimizer, lr_scheduler, device_ids, best, args.save_freq)
-        """
 
         # print logged informations to the screen
         for key, value in log.items():
@@ -312,10 +300,13 @@ def save_vit_model(args, model, optimizer, epoch):
                        + "_bs" + str(args.batch_size) + "_best_accuracy.pth"
 
     model_path = "saved_models/trained_classifier/"
+
+    """
     # create a second file, indicating how many epochs have passed until the best accuracy was reached
     with open(model_path + args.dataset + '.txt', 'w') as f:
         f.write(str(epoch) + ":     " + args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_" + args.dataset\
                        + "_bs" + str(args.batch_size) + "_best_accuracy.pth")
+    """
 
     torch.save({
         'model_name': args.model, # args.model,
