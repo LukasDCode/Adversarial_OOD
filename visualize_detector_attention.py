@@ -44,7 +44,7 @@ def get_model_from_args(args, model_name, num_classes):
 
 
 
-def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False, additional_info=""): # img [3, 224, 224]
+def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False): # img [3, 224, 224]
     # # Detection - Visualize encoder-decoder multi-head attention weights
     # Here we visualize attention weights of the last decoder layer. This corresponds to visualizing, for each
     # detected objects, which part of the image the model was looking at to predict this specific bounding box and class.
@@ -142,14 +142,14 @@ def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False, addi
                     fcenter_ax.axis('off')
             if ood:
                 if pert:
-                    plt.savefig(f'figures/attention/perturbed/ood_pert_{img_label}{additional_info}_att-layer{i}.png')
+                    plt.savefig(f'figures/attention/perturbed/ood_pert_{img_label}_att-layer{i}.png')
                 else:
-                    plt.savefig(f'figures/attention/clean/ood_clean_{img_label}{additional_info}_att-layer{i}.png')
+                    plt.savefig(f'figures/attention/clean/ood_clean_{img_label}_att-layer{i}.png')
             else:
                 if pert:
-                    plt.savefig(f'figures/attention/perturbed/id_pert_{img_label}{additional_info}_att-layer{i}.png')
+                    plt.savefig(f'figures/attention/perturbed/id_pert_{img_label}_att-layer{i}.png')
                 else:
-                    plt.savefig(f'figures/attention/clean/id_clean_{img_label}{additional_info}_att-layer{i}.png')
+                    plt.savefig(f'figures/attention/clean/id_clean_{img_label}_att-layer{i}.png')
             plt.close('all')
 
 
