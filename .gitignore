@@ -5,6 +5,7 @@ data/SVHN/
 data/svhn/
 !*/data/cifar10_test_relative_softmax_averages.pickle
 
+
 # ignore directories
 .idea/
 __pycache__/
@@ -15,13 +16,13 @@ experiments/
 utils/models/saved_models/
 _save/
 saved_models/
+figures/
 
 
 # ignore files
 test.py
 console_output
 model_20221026_143350_0
-bash_tester.sh
 bash_trainer.sh
 
 
