@@ -13,6 +13,7 @@ from utils.ood_detection.ood_detector import MiniNet, CNN_IBP
 from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf
 from utils.store_model import load_classifier, load_detector
 from train_detector import get_noise_from_args
+import utils.ood_detection.data_loaders as DataLoader # KEEP THIS, because of eval
 
 from utils.cifar10_labels import cifar10_labels
 from utils.cifar100_labels import cifar100_labels
@@ -157,7 +158,8 @@ def visualize_detector_attention(args):
     # writes the datadirs directly into the args
     set_id_ood_datadirs(args)
 
-    # get an ID and OOD dataloader to visualize one image per dataloader
+    # get an ID and OOD dataloader to visualize one random image per batch
+    # SVHNDataLoader has svhn written in capital letters
     if args.dataset == 'svhn': args.dataset = 'SVHN'
     if args.ood_dataset == 'svhn': args.ood_dataset = 'SVHN'
 
@@ -177,6 +179,7 @@ def visualize_detector_attention(args):
         split='val',
         net=args.model)
 
+    # uncapitalize svhn back again
     if args.dataset == 'SVHN': args.dataset = 'svhn'
     if args.ood_dataset == 'SVHN': args.ood_dataset = 'svhn'
 
@@ -205,6 +208,7 @@ def visualize_detector_attention(args):
             id_inputs, id_labels = id_inputs.to(device=args.device), id_labels.to(device=args.device)
             ood_inputs, ood_labels = ood_inputs.to(device=args.device), ood_labels.to(device=args.device)
 
+            # select a random sample from the ID and the OOD batch (same index)
             random_selection = random.randint(0, args.batch_size-1)
             id_input, ood_input = id_inputs[random_selection], ood_inputs[random_selection]
             id_label, ood_label = id_labels[random_selection], ood_labels[random_selection]
@@ -218,10 +222,10 @@ def visualize_detector_attention(args):
             if attack:
                 perturbed_id_inputs, _, _ = attack(id_inputs, id_labels)
                 perturbed_ood_inputs, _, _ = attack(ood_inputs, ood_labels)
-                id_input, ood_input = id_inputs[random_selection], ood_inputs[random_selection]
+                perturbed_id_input, perturbed_ood_input = perturbed_id_inputs[random_selection], perturbed_ood_inputs[random_selection]
 
-                visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=True)
-                visualize_attn_embeddings(detector, ood_input, ood_label_string, ood=True, pert=True)
+                visualize_attn_embeddings(detector, perturbed_id_input, id_label_string, ood=False, pert=True)
+                visualize_attn_embeddings(detector, perturbed_ood_input, ood_label_string, ood=True, pert=True)
 
             if index == args.visualize: break
 
