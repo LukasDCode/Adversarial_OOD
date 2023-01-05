@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument('--stepsize', type=float, default=0.01, help='float - factor to change the model weights in gradient descent')
 
     parser.add_argument('--imagesize', type=int, default=224, help='int - amount of pixel for the images')
-    parser.add_argument('--batchsize', type=int, default=16, help='int - amount of images in one of the train or valid batches')
+    parser.add_argument('--batchsize', type=int, default=32, help='int - amount of images in one of the train or valid batches')
     parser.add_argument('--workers', type=int, default=0, help='int - amount of workers in the dataloader')
 
     # boolean parameters, false until the flag is set --> then true
@@ -64,7 +64,7 @@ def perform_MPGD_attack(args):
         num_layers = 12
         # load ViT model and its ckpt
         # TODO comment ckpt back in
-        #ckpt = torch.load(args.ckpt, map_location=torch.device(args.device))
+        ckpt = torch.load("saved_models/trained_classifier/bs32/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth", map_location=torch.device(args.device))
         """
         model = ViT(image_size=(IMAGE_SIZE,IMAGE_SIZE), #224,224
                      num_heads=num_heads, #12
@@ -80,7 +80,7 @@ def perform_MPGD_attack(args):
             mlp_dim=3072,
             num_heads=12,
             num_layers=12,
-            num_classes=100,
+            num_classes=10,
             attn_dropout_rate=0.0,
             dropout_rate=0.1,
             contrastive=False,
@@ -88,7 +88,7 @@ def perform_MPGD_attack(args):
             head=None)
         # now load the model
         # TODO comment load_state_dict back in
-        #model.load_state_dict(ckpt['state_dict'], strict=False)
+        model.load_state_dict(ckpt['model_state_dict'], strict=False)
         model = model.to(device=args.device)#cuda()
         model.eval()
         print('ViT Model loaded....')
@@ -100,7 +100,7 @@ def perform_MPGD_attack(args):
     dataloaders_config = {
         "data_dir": "data/cifar100", # "/home/koner/adversarial_ood/data/cifar-100-python/"
         "image_size": IMAGE_SIZE, #224
-        "batch_size": args.batchsize, #16
+        "batch_size": args.batchsize, #32
         "num_workers": args.workers, #0
         "contrastive": False,
         "albumentation": False,
