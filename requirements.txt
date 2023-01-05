@@ -20,5 +20,6 @@ tensorflow_datasets==4.7.0
 tensorflow_probability==0.18.0
 timm==0.4.12
 torch==1.7.1
+torchmetrics==0.10.3
 torchvision==0.8.0a0
 tqdm==4.62.3
