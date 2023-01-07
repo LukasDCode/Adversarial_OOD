@@ -5,7 +5,7 @@ from tqdm import tqdm
 import torch
 import torchvision
 import numpy as np
-from torchmetrics.classification import BinaryAUROC
+import sklearn.metrics
 
 from vit.src.model import VisionTransformer as ViT
 from vit.src.utils import MetricTracker, accuracy
@@ -57,8 +57,7 @@ def test_detector(args):
     losses = []
     acc1s = []
     acc2s = []
-    auroc = BinaryAUROC(thresholds=None)
-    auroc_list = []
+    auroc_list, aupr_list = [], []
 
     # get a dataloader mixed 50:50 with ID and OOD data and labels of 0 (ID) and 1 (OOD)
     test_dataloader = create_mixed_test_dataloaders(args)
@@ -91,10 +90,12 @@ def test_detector(args):
             losses.append(loss.item())
             acc1s.append(acc1.item())
             acc2s.append(acc2.item())
-            #auroc_list.append(auroc(outputs.clone().to(device="cpu"), labels.clone().to(device="cpu")))
-            auroc_list.append(auroc(torch.max(outputs, dim=1).indices, labels))
-            #print("\nauroc clean:     ", auroc_list[-1])
-
+            aupr_list.append(sklearn.metrics.average_precision_score(labels.clone().unsqueeze(1).to(device="cpu"),
+                                                                  torch.gather(outputs.to(device="cpu"), dim=1,
+                                                                               index=labels.clone().unsqueeze(-1).to(device="cpu"))))
+            auroc_list.append(sklearn.metrics.roc_auc_score(labels.clone().unsqueeze(1).to(device="cpu"),
+                                                            torch.gather(outputs.to(device="cpu"), dim=1,
+                                                                         index=labels.clone().unsqueeze(-1).to(device="cpu"))))
 
             if attack:
                 perturbed_inputs, _, _ = attack(inputs, labels)
@@ -105,13 +106,17 @@ def test_detector(args):
                 losses.append(loss.item())
                 acc1s.append(acc1.item())
                 acc2s.append(acc2.item())
-                auroc_list.append(auroc(torch.max(p_outputs, dim=1).indices, labels).item())
-                #print("auroc perturbed: ", auroc_list[-1])
+                aupr_list.append(sklearn.metrics.average_precision_score(labels.clone().unsqueeze(1).to(device="cpu"),
+                                                                        torch.gather(p_outputs.to(device="cpu"), dim=1,
+                                                                                     index=labels.clone().unsqueeze(-1).to(device="cpu"))))
+                auroc_list.append(sklearn.metrics.roc_auc_score(labels.clone().unsqueeze(1).to(device="cpu"),
+                                                                  torch.gather(p_outputs.to(device="cpu"), dim=1,
+                                                                               index=labels.clone().unsqueeze(-1).to(device="cpu"))))
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
             # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 20: break
+            if args.break_early and batch_nr == 420: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
@@ -128,10 +133,8 @@ def test_detector(args):
     for key, value in log.items():
         print('    {:15s}: {}'.format(str(key), value))
 
-    auroc_length = len(auroc_list)
-    print("Max AUROC:", max(auroc_list).item())
-    print("Min AUROC:", min(auroc_list).item())
-    print("Avg AUROC:", sum(auroc_list).item()/auroc_length)
+    print("AUROC: ", sum(auroc_list)/len(auroc_list))
+    print("AUPR:  ", sum(aupr_list)/len(aupr_list))
     print("ID:", args.dataset, " ---  OOD:", args.ood_dataset)
 
     print("Finished Testing the Model")
