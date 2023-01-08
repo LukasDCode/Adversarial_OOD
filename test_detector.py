@@ -26,11 +26,6 @@ def get_model_from_args(args, model_name, num_classes):
                     num_classes=num_classes,  # 2 for OOD detection, 10 or more for classification
                     contrastive=False,
                     timm=True).to(device=args.device) # cuda()
-        """
-        feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224")
-        model = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
-        inputs = feature_extractor(image, return_tensors="pt")
-        """
     elif model_name.lower() == "cnn_ibp":
         #TODO currently not working, throwing error
         #"RuntimeError: mat1 dim 1 must match mat2 dim 0"
@@ -60,7 +55,9 @@ def test_detector(args):
     auroc_list, aupr_list = [], []
 
     # get a dataloader mixed 50:50 with ID and OOD data and labels of 0 (ID) and 1 (OOD)
+    if args.dataset == 'svhn': args.dataset = 'SVHN'
     test_dataloader = create_mixed_test_dataloaders(args)
+    if args.dataset == 'SVHN': args.dataset = 'svhn'
 
     # attack instance
     if args.attack:
@@ -90,12 +87,10 @@ def test_detector(args):
             losses.append(loss.item())
             acc1s.append(acc1.item())
             acc2s.append(acc2.item())
-            aupr_list.append(sklearn.metrics.average_precision_score(labels.clone().unsqueeze(1).to(device="cpu"),
-                                                                  torch.gather(outputs.to(device="cpu"), dim=1,
-                                                                               index=labels.clone().unsqueeze(-1).to(device="cpu"))))
-            auroc_list.append(sklearn.metrics.roc_auc_score(labels.clone().unsqueeze(1).to(device="cpu"),
-                                                            torch.gather(outputs.to(device="cpu"), dim=1,
-                                                                         index=labels.clone().unsqueeze(-1).to(device="cpu"))))
+            aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"),
+                                                                  torch.gather(outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+            auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"),
+                                                            torch.gather(outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
 
             if attack:
                 perturbed_inputs, _, _ = attack(inputs, labels)
@@ -106,17 +101,16 @@ def test_detector(args):
                 losses.append(loss.item())
                 acc1s.append(acc1.item())
                 acc2s.append(acc2.item())
-                aupr_list.append(sklearn.metrics.average_precision_score(labels.clone().unsqueeze(1).to(device="cpu"),
-                                                                        torch.gather(p_outputs.to(device="cpu"), dim=1,
-                                                                                     index=labels.clone().unsqueeze(-1).to(device="cpu"))))
-                auroc_list.append(sklearn.metrics.roc_auc_score(labels.clone().unsqueeze(1).to(device="cpu"),
-                                                                  torch.gather(p_outputs.to(device="cpu"), dim=1,
-                                                                               index=labels.clone().unsqueeze(-1).to(device="cpu"))))
+
+                aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"),
+                                                                         torch.gather(p_outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+                auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"),
+                                                                  torch.gather(p_outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
             # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 420: break
+            if args.break_early and batch_nr == 500: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
