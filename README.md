@@ -100,10 +100,10 @@ python visualize_detector_attention.py --model vit --attack --device cuda --sele
 In case the paths and the trained models have not been changed yet, the paths should work as they are in the command above. The specified ID dataset is Cifar10 and the OOD dataset is SVHN in the command above.
 
 ![ID Cifar10 first attention layer image of a bird.](figures/graphics/id_clean_bird_att-layer0.png)
-*ID Cifar10 first attention layer image of a bird.*
+*ID Cifar10 first attention layer of a clean image of a bird.*
 
 ![OOD SVHN 8th attention layer image of the digit 2.](figures/graphics/ood_pert_2_att-layer7.png)
-*OOD SVHN 8th attention layer image of the digit 2.*
+*OOD SVHN 8th attention layer of a perturbed image of the digit 2.*
 
 To print the path an OOD image takes to get closer to an ID image can be done with the following command:
 (Note: a random image from the first OOD batch is selected)
