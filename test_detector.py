@@ -3,6 +3,7 @@ import sys
 import argparse
 from tqdm import tqdm
 import torch
+import torch.nn.functional as nnf
 import torchvision
 import numpy as np
 import sklearn.metrics
@@ -87,10 +88,11 @@ def test_detector(args):
             losses.append(loss.item())
             acc1s.append(acc1.item())
             acc2s.append(acc2.item())
+
             aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"),
-                                                                  torch.gather(outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+                                                                     torch.gather(nnf.softmax(outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
             auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"),
-                                                            torch.gather(outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+                                                            torch.gather(nnf.softmax(outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
 
             if attack:
                 perturbed_inputs, _, _ = attack(inputs, labels)
@@ -103,9 +105,9 @@ def test_detector(args):
                 acc2s.append(acc2.item())
 
                 aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"),
-                                                                         torch.gather(p_outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+                                                                         torch.gather(nnf.softmax(p_outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
                 auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"),
-                                                                  torch.gather(p_outputs, dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+                                                                torch.gather(nnf.softmax(p_outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
