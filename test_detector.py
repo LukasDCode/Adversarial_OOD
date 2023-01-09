@@ -112,7 +112,7 @@ def test_detector(args):
             if args.device == "cuda": torch.cuda.empty_cache()
 
             # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 500: break
+            if args.break_early and batch_nr == 400: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)

@@ -14,6 +14,7 @@ from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf
 from utils.store_model import load_classifier, load_detector
 from train_detector import get_noise_from_args
 import utils.ood_detection.data_loaders as DataLoader # KEEP THIS, because of eval
+from utils.image_modification_path import print_single_image_modification_path
 
 from utils.cifar10_labels import cifar10_labels
 from utils.cifar100_labels import cifar100_labels
@@ -198,7 +199,7 @@ def visualize_detector_attention(args):
 
         dataloader_iterator = iter(id_dataloader)
 
-        for index, [ood_inputs, ood_labels] in enumerate(tqdm(ood_dataloader)):
+        for index, [ood_inputs, ood_labels] in enumerate(tqdm(ood_dataloader, disable=args.print_perturbation_path)):
             try:
                 [id_inputs, id_labels] = next(dataloader_iterator)
             except StopIteration:
@@ -210,22 +211,66 @@ def visualize_detector_attention(args):
 
             # select a random sample from the ID and the OOD batch (same index)
             random_selection = random.randint(0, args.batch_size-1)
+
+            if args.print_specific_id_label:
+                specific_label = "possum"
+                if args.dataset == "cifar10":
+                    label_index = cifar10_labels.index(specific_label)
+                elif args.dataset == "cifar100":
+                    label_index = cifar100_labels.index(specific_label)
+                elif args.dataset == "svhn":
+                    label_index = int(specific_label)
+                else:
+                    raise ValueError("ID dataset not existing")
+
+                selected_batch_index = (id_labels == label_index).nonzero(as_tuple=True)[0]
+                if selected_batch_index.nelement() != 0:
+                    if isinstance(selected_batch_index.item(), list):
+                        random_selection = selected_batch_index.item()[0]
+                    else:
+                        random_selection = selected_batch_index.item()
+                else:
+                    continue
+
+
             id_input, ood_input = id_inputs[random_selection], ood_inputs[random_selection]
             id_label, ood_label = id_labels[random_selection], ood_labels[random_selection]
 
             id_label_string = get_string_label_for_sample(id_label, args.dataset)
             ood_label_string = get_string_label_for_sample(ood_label, args.ood_dataset)
 
-            visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=False)
-            visualize_attn_embeddings(detector, ood_input, ood_label_string, ood=True, pert=False)
+            if not args.print_specific_id_label and not args.print_perturbation_path:
+                visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=False)
+                visualize_attn_embeddings(detector, ood_input, ood_label_string, ood=True, pert=False)
+
+            if args.print_specific_id_label:
+                specific_label = args.specific_label
+                if id_label_string == specific_label:
+                    visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=False)
+                    print("Found a sample with the label:", specific_label)
+                    return
 
             if attack:
                 perturbed_id_inputs, _, _ = attack(id_inputs, id_labels)
-                perturbed_ood_inputs, _, _ = attack(ood_inputs, ood_labels)
+                perturbed_ood_inputs, p_best_softmax_list, p_best_idx = attack(ood_inputs, ood_labels)
                 perturbed_id_input, perturbed_ood_input = perturbed_id_inputs[random_selection], perturbed_ood_inputs[random_selection]
 
-                visualize_attn_embeddings(detector, perturbed_id_input, id_label_string, ood=False, pert=True)
-                visualize_attn_embeddings(detector, perturbed_ood_input, ood_label_string, ood=True, pert=True)
+                if not args.print_specific_id_label and not args.print_perturbation_path:
+                    visualize_attn_embeddings(detector, perturbed_id_input, id_label_string, ood=False, pert=True)
+                    visualize_attn_embeddings(detector, perturbed_ood_input, ood_label_string, ood=True, pert=True)
+
+
+                if args.print_perturbation_path:
+                    if args.dataset == "cifar10":
+                        id_class_list = cifar10_labels
+                    elif args.dataset == "cifar100":
+                        id_class_list = cifar100_labels
+                    elif args.dataset == "svhn":
+                        id_class_list = [str(x) for x in range(0,10)]
+                    else:
+                        raise ValueError("ID dataset not existing")
+
+                    print_single_image_modification_path(p_best_softmax_list[p_best_idx[random_selection].item()], len(id_dataloader.dataset.classes), id_class_list, ood_label_string)
 
             if index == args.visualize: break
 
@@ -274,6 +319,9 @@ def parse_args():
     parser.add_argument("--select-gpu", type=int, default=0, help="select gpu to use, no parallelization possible")
     parser.add_argument('--attack', action='store_true', help='toggels the MonotonePGD attack')
     parser.add_argument("--visualize", type=int, default=3, help="amount of id and ood images to visualize")
+    parser.add_argument('--print-perturbation-path', action='store_true', help='toggels printing the ood perturbation path')
+    parser.add_argument('--print-specific-id-label', action='store_true', help='toggels printing specific id label mode')
+    parser.add_argument('--specific-label', type=str, help='str - string representation of a label that should be found in the ID dataset and its attention be printed')
 
     parser.add_argument('--albumentation', action='store_true', help='use albumentation as data aug')
     parser.add_argument('--contrastive', action='store_true', help='using distributed loss calculations across multiple GPUs')
