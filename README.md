@@ -1,4 +1,4 @@
-# Combination: ViT with monotone PGD attack
+# Robust Adversarial OOD Detection with ViTs
 
 ## Installation
 
@@ -57,7 +57,6 @@ The ```--classification_ckpt``` eventually has to be adapted to the location whe
 By default the trained classifier gets placed in the ```saved_models/trained_classifier/``` directory.
 
 
-
 ## Train an OOD Detector
 | :warning: WARNING: Executing these commands takes a lot of time! :warning: |
 |----------------------------------------------------------------------------|
@@ -75,6 +74,8 @@ python train_detector --train-steps 6250 --model vit --model-arch t16 --image-si
 
 In case the paths and the trained models have not been changed yet, the paths should work as they are in the command above.
 By default the trained detector gets placed in the ```saved_models/trained_detector/``` directory.
+
+![Training pipeline for an detector displaying the usage of clean and perturbed image samples.](figures/graphics/detector_training_pipeline.png)
 
 
 ### Test the OOD Detector
@@ -113,6 +114,8 @@ python visualize_detector_attention.py --model vit --attack --print-specific-id-
 The command above automatically cancels execution once a single ID sample from the same class was found and visualized.
 
 
+
+## EXPERIMENTAL
 
 ### Try out the Monotone PGD attack with visualization
 Simply run the default python script, no parameters are necessary:
