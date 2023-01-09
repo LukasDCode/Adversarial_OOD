@@ -40,11 +40,7 @@ def get_cifar100_train_valid_dataloader(args):
 
 
 def get_cifar100_test_dataloader(args):
-    if args.detector_model_name:
-        model_name = args.detector_model_name
-    else:
-        model_name = args.classification_model_name
-    transform = get_transform(train=False, image_size=args.image_size, dataset='cifar100', network=model_name)
+    transform = get_transform(train=False, image_size=args.image_size, dataset='cifar100', network=args.model)
     dataset_test = datasets.CIFAR100(root='/home-local/koner/lukas/Adversarial_OOD/data/cifar100/', train=False, download=True, transform=transform)
     return create_dataloader_from_dataset(args, dataset_test)
 
