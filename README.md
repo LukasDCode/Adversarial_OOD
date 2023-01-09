@@ -85,14 +85,32 @@ python test_detector.py --model vit --attack --device cuda --select-gpu 0 --num-
 > :warning: Testing a detector model is again on the slower side, as the input samples have to run through the classifier multiple times again to ensure robustness.
 > Testing the detector takes as much time as training it for 1 epoch.
 
-In case the paths and the trained models have not been changed yet, the paths should work as they are in the command above.
+In case the paths and the trained models have not been changed yet, the paths should work as they are in the command above. The specified ID dataset is Cifar10 and the OOD dataset is SVHN in the command above.
 
 
 
-## Visualize the results
+## Visualize the Attention Results
+Visualize the attention maps of 4 randomly selected samples from the first 4 batches.
 ```shell
-python DO_SOMETHING
+python visualize_detector_attention.py --model vit --attack --device cuda --select-gpu 1 --num-workers 8 --visualize 3 --classification-ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth --detector-ckpt-path saved_models/trained_detector/vit_t16_224SupCE_id_cifar10_ood_svhn_bs32_best_accuracy.pth
 ```
+
+In case the paths and the trained models have not been changed yet, the paths should work as they are in the command above. The specified ID dataset is Cifar10 and the OOD dataset is SVHN in the command above.
+
+
+To print the path an OOD image takes to get closer to an ID image can be done with the following command:
+(Note: a random image from the first OOD batch is selected)
+```shell
+python visualize_detector_attention.py --model vit --attack --print-perturbation-path --device cuda --select-gpu 1 --num-workers 8 --visualize 0 --classification-ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth --detector-ckpt-path saved_models/trained_detector/vit_t16_224SupCE_id_cifar10_ood_svhn_bs32_best_accuracy.pth
+```
+
+
+To visualize an ID sample of the corresponding class the following command has to be executed and the **specific label has to be adjusted**:
+```shell
+python visualize_detector_attention.py --model vit --attack --print-specific-id-label --specific-label <LABEL> --device cuda --select-gpu 1 --num-workers 8 --visualize 32 --classification-ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth --detector-ckpt-path saved_models/trained_detector/vit_t16_224SupCE_id_cifar10_ood_svhn_bs32_best_accuracy.pth
+```
+
+The command above automatically cancels execution once a single ID sample from the same class was found and visualized.
 
 
 
