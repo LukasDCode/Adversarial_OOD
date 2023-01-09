@@ -74,7 +74,7 @@ python train_detector --train-steps 6250 --model vit --model-arch t16 --image-si
 
 In case the paths and the trained models have not been changed yet, the paths should work as they are in the command above.
 By default the trained detector gets placed in the ```saved_models/trained_detector/``` directory.
-The attack has 18 cycles for 2 restarts and 5 iterations [$18 = (2+1) * (5+1)$].
+The attack has 18 cycles for 2 restarts and 5 iterations $[18 = (2+1) * (5+1)]$.
 
 ![Training pipeline for an detector displaying the usage of clean and perturbed image samples.](figures/graphics/detector_training_pipeline.png)
 
