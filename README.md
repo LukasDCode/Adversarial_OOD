@@ -32,26 +32,20 @@ But in order to download other models refer to [the official github page](https:
 
 To train a ViT model with **batch size 32** on Cifar-10, Cifar-100 and SVHN respectively, execute on of the following lines:
 ```shell
-python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
-python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
-python train_classifier.py --train-steps 138000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --data-dir data/ --dataset svhn --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 32 --method SupCE --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 32 --method SupCE --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
+python train_classifier.py --train-steps 138000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 32 --method SupCE --data-dir data/ --dataset svhn --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 ```
 
-The classifiers can also be trained on other batch sizes, like 64 for example.
+The classifiers can also be trained on other batch sizes.
 But the following executions will only cover batch size 32, because the machine available during development could only handle batch size 32.
-Commands to train a ViT model with **batch size 64** on Cifar-10, Cifar-100 and SVHN respectively:
-```shell
-python train_classifier.py --train-steps 47000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
-python train_classifier.py --train-steps 47000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
-python train_classifier.py --train-steps 69000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 64 --method SupCE --data-dir data/ --dataset svhn --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
-```
 
 
 ### Test the Classifier
 One advantage of this implementation is, that all parameters are stored inside the checkpoint file, so they do not have to be specified manually.
 In order to test the first classifier trained on Cifar-10 you have to execute the following command:
 ```shell
-python test_classifier.py --model vit --n-gpu 2 --num-workers 8 --classification_ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs64_best_accuracy.pth
+python test_classifier.py --model vit --n-gpu 2 --num-workers 8 --classification_ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth
 ```
 The ```--classification_ckpt``` eventually has to be adapted to the location where your trained classifier is located.
 By default the trained classifier gets placed in the ```saved_models/trained_classifier/``` directory.
@@ -62,10 +56,10 @@ By default the trained classifier gets placed in the ```saved_models/trained_cla
 |----------------------------------------------------------------------------|
 
 Training a ViT detector takes an already trained classifier into account, as the PGD attack is performed on the gradients of the classifier.
-The following command trains a tiny ViT model with batch size 16 on cifar10 as ID data and SVHN as OOD data **for only 2 epochs**.
+The following command trains a tiny ViT model with batch size 32 on cifar10 as ID data and SVHN as OOD data **for only 2 epochs**.
 If more epochs are desired, just increase the ```--train-steps``` argument. 3125 training steps are equal to one epoch for batch size 32.
-Training 1 epoch took ~16h on the machine used for development.
-Both datasets also get perturbed x times by the PGD attack according to the gradients of the classifier (here: x = restarts * iterations)
+Training 1 epoch took ~16h plus ~2h of validation on the machine used for development.
+Both datasets also get perturbed x times by the PGD attack according to the gradients of the classifier [here: x = (restarts+1) * (iterations+1)]
 ```shell
 python train_detector --train-steps 6250 --model vit --model-arch t16 --image-size 224 --data-dir data/cifar10/ --dataset cifar10 --ood-data-dir data/ --ood-dataset svhn --lr 0.01 --wd 1e-5 --device cuda --select-gpu 0 --num-workers 8 --batch-size 32 --method SupCE --attack --noise normal --iterations 5 --restarts 2 --checkpoint-path saved_models/pretrained/Ti_16-i21k-300ep-lr_0.001-aug_none-wd_0.03-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.03-res_224.npz --classifier-ckpt-path saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth
 ```
@@ -92,7 +86,7 @@ In case the paths and the trained models have not been changed yet, the paths sh
 
 
 ## Visualize the Attention Results
-Visualize the attention maps of 4 randomly selected samples from the first 4 batches.
+Visualize the attention maps of 4 randomly selected samples from the first 4 batches (the --visualize parameter is zero-indexed).
 ```shell
 python visualize_detector_attention.py --model vit --attack --device cuda --select-gpu 1 --num-workers 8 --visualize 3 --classification-ckpt saved_models/trained_classifier/vit_b16_224SupCE_cifar10_bs32_best_accuracy.pth --detector-ckpt-path saved_models/trained_detector/vit_t16_224SupCE_id_cifar10_ood_svhn_bs32_best_accuracy.pth
 ```
