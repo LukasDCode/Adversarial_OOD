@@ -130,4 +130,4 @@ python run_MPGD_attack.py --single --eps 0.025 --iterations 25 --visualize
 
 
 ## Acknowledgments
-This code is inspired by the works of [Rajat Koner](https://github.com/rajatkoner08/oodformer) and [Alexander Meinke](https://github.com/AlexMeinke/Provable-OOD-Detection).
+This code is inspired by the works of [Rajat Koner et al.](https://github.com/rajatkoner08/oodformer) and [Alexander Meinke et al.](https://github.com/AlexMeinke/Provable-OOD-Detection).
