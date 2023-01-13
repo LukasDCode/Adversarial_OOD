@@ -30,7 +30,7 @@ But in order to download other models refer to [the official github page](https:
 
 ## Train a Vision Transformer Classifier
 
-To train a ViT model with **batch size 32** on Cifar-10, Cifar-100 and SVHN respectively, execute on of the following lines:
+To train a ViT model with **batch size 32** on Cifar-10, Cifar-100 and SVHN respectively, execute one of the following lines:
 ```shell
 python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 32 --method SupCE --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 32 --method SupCE --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
@@ -38,7 +38,7 @@ python train_classifier.py --train-steps 138000 --model-arch b16 --image-size 22
 ```
 
 The classifiers can also be trained on other batch sizes.
-But the following executions will only cover batch size 32, because the machine available during development could only handle batch size 32.
+But the following executions will only cover batch size 32, because the machine available during development could only handle batch size 32 later on with the adversarial attack.
 
 
 ### Test the Classifier
@@ -52,8 +52,8 @@ By default the trained classifier gets placed in the ```saved_models/trained_cla
 
 
 ## Train an OOD Detector
-| :warning: WARNING: Executing these commands takes a lot of time! :warning: |
-|----------------------------------------------------------------------------|
+| :warning: WARNING: Executing the commands of the detector takes a lot of time! :warning: |
+|------------------------------------------------------------------------------------------|
 
 Training a ViT detector takes an already trained classifier into account, as the PGD attack is performed on the gradients of the classifier.
 The following command trains a tiny ViT model with batch size 32 on cifar10 as ID data and SVHN as OOD data **for only 2 epochs**.
@@ -117,7 +117,7 @@ The command above automatically cancels execution once a single ID sample from t
 
 ## EXPERIMENTAL
 
-### Try out the Monotone PGD attack with visualization
+#### Try out the Monotone PGD attack with visualization
 Simply run the default python script, no parameters are necessary:
 ```shell
 python run_MPGD_attack.py
