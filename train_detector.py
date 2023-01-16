@@ -399,11 +399,6 @@ def save_vit_detector(args, model, optimizer, epoch):
                        args.dataset + "_ood_" + args.ood_dataset + "_bs" + str(args.batch_size) + "_best_accuracy.pth"
     model_path = "saved_models/trained_detector/"
 
-    # create a second file, indicating how many epochs have passed until the best accuracy was reached
-    with open(model_path + args.dataset + '.txt', 'w') as f:
-        f.write(str(epoch) + ":     " + args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_" + args.dataset\
-                       + "_bs" + str(args.batch_size) + "_best_accuracy.pth")
-
     torch.save({
         'model_name': args.model, # args.model,
         'loss': args.method,  # args.loss, #args.method,
