@@ -4,7 +4,9 @@ import random
 import copy
 import torch
 import torch.nn as nn
+import torch.nn.functional as nnf
 import numpy as np
+import sklearn.metrics
 from tqdm import tqdm
 from timm.data import Mixup
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
@@ -124,6 +126,10 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
     losses = []
     acc1s = []
     acc2s = []
+    auroc_list, aupr_list = [], []  # lists for the values of all samples
+    p_auroc_list, p_aupr_list = [], []  # lists for the values of only the perturbed samples
+
+
     criterion = torch.nn.CrossEntropyLoss()
     # validation loop
     with torch.no_grad():
@@ -144,6 +150,10 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
             acc1s.append(acc1.item())
             acc2s.append(acc2.item())
 
+            # CHANGE calculate AUROC and AUPR
+            predictions = torch.gather(nnf.softmax(batch_pred, dim=1), dim=1, index=batch_target.unsqueeze(-1)).squeeze(1)
+            aupr_list.append(auprc(batch_target.to(device="cpu"), predictions.to(device="cpu")))
+            auroc_list.append(auroc(batch_target.to(device="cpu"), predictions.to(device="cpu")))
 
             if attack:
                 # Here also the ID data gets perturbed, but actually it is just an augmentation
@@ -156,6 +166,13 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
                 losses.append(loss.item())
                 acc1s.append(p_acc1.item())
                 acc2s.append(p_acc2.item())
+
+                # calculate AUROC and AUPR and add them to the lists with all values and the lists with only values from perturbed samples
+                p_predictions = torch.gather(nnf.softmax(perturbed_batch_pred, dim=1), dim=1, index=batch_target.unsqueeze(-1)).squeeze(1)
+                aupr_list.append(auprc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
+                auroc_list.append(auroc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
+                p_aupr_list.append(auprc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
+                p_auroc_list.append(auroc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
 
             # break out of validation sooner, because a full validation takes around 16h same as 1 epoch, 1 iteration takes ~20sec
             if break_early and batch_idx == 10: break
@@ -170,7 +187,28 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
     metrics.update('loss', loss)
     metrics.update('acc1', acc1)
     metrics.update('acc2', acc2)
+
+    # print AUROC and AUPR values for this epoch
+    print("Epoch", epoch, "- AUROC: ", sum(auroc_list)/len(auroc_list))
+    print("Epoch", epoch, "- AUPR :  ", sum(aupr_list)/len(aupr_list))
+    print("Epoch", epoch, "- Perturbed AUROC: ", sum(p_auroc_list) / len(p_auroc_list))
+    print("Epoch", epoch, "- Perturbed AUPR:  ", sum(p_aupr_list) / len(p_aupr_list))
+
     return metrics.result()
+
+
+# Copied from Alex's code
+def auprc(values_in, values_out):
+    y_true = len(values_in)*[1] + len(values_out)*[0]
+    y_score = np.concatenate([values_in, values_out])
+    return sklearn.metrics.average_precision_score(y_true, y_score)
+
+
+# Copied from Alex's code
+def auroc(values_in, values_out):
+    y_true = len(values_in)*[1] + len(values_out)*[0]
+    y_score = np.concatenate([np.nan_to_num(values_in, nan=0.0), np.nan_to_num(values_out, nan=0.0)])
+    return sklearn.metrics.roc_auc_score(y_true, y_score)
 
 
 def main(args, device):
@@ -322,7 +360,6 @@ def main(args, device):
             best_epoch = epoch
             best = True
 
-            # CHANGE
             # save the detector model with the best accuracy
             print("save the detector model with the best accuracy")
             save_vit_detector(args, detector, optimizer, epoch)
@@ -393,7 +430,6 @@ def load_classifier(args):
     return model
 
 
-# CHANGE
 def save_vit_detector(args, model, optimizer, epoch):
     saved_model_name = args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_id_" +\
                        args.dataset + "_ood_" + args.ood_dataset + "_bs" + str(args.batch_size) + "_best_accuracy.pth"
@@ -504,8 +540,6 @@ def get_train_detector_args():
     # model args
     args = eval("get_{}_config".format(args.model_arch))(args)
 
-    # CHANGE comment out storing args in directory, only printing is left in
-    # process_config(args)
     print_config(args)
     args.num_classes = 2 #is always forced to be 2 for ID and OOD
     return args
