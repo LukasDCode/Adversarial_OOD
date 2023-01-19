@@ -53,7 +53,8 @@ def test_detector(args):
     losses = []
     acc1s = []
     acc2s = []
-    auroc_list, aupr_list = [], []
+    auroc_list, aupr_list = [], [] # lists for the values of all samples
+    p_auroc_list, p_aupr_list = [], [] # lists for the values of only the perturbed samples
 
     # get a dataloader mixed 50:50 with ID and OOD data and labels of 0 (ID) and 1 (OOD)
     if args.dataset == 'svhn': args.dataset = 'SVHN'
@@ -73,7 +74,7 @@ def test_detector(args):
     with torch.no_grad():
         classifier.eval()
         detector.eval()
-        criterion = torch.nn.CrossEntropyLoss().to(args.device) # CHANGE placed outside of loop
+        criterion = torch.nn.CrossEntropyLoss().to(args.device)
         for batch_nr, (id_data, ood_data) in enumerate(tqdm(test_dataloader)):
             inputs, labels = shuffle_batch_elements(id_data, ood_data)
             # from ViT training validation
@@ -89,10 +90,10 @@ def test_detector(args):
             acc1s.append(acc1.item())
             acc2s.append(acc2.item())
 
-            aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"),
-                                                                     torch.gather(nnf.softmax(outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
-            auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"),
-                                                            torch.gather(nnf.softmax(outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+            # calculate AUROC and AUPR values
+            predictions = torch.gather(nnf.softmax(outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1)
+            aupr_list.append(auprc(labels.to(device="cpu"), predictions.to(device="cpu")))
+            auroc_list.append(auroc(labels.to(device="cpu"), predictions.to(device="cpu")))
 
             if attack:
                 perturbed_inputs, _, _ = attack(inputs, labels)
@@ -104,15 +105,20 @@ def test_detector(args):
                 acc1s.append(acc1.item())
                 acc2s.append(acc2.item())
 
-                aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"),
-                                                                         torch.gather(nnf.softmax(p_outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
-                auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"),
-                                                                torch.gather(nnf.softmax(p_outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1).to(device="cpu")))
+
+                p_predictions = torch.gather(nnf.softmax(p_outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1)
+
+                # values get added to the normal list and to the list with only the values of the perturbed samples
+                aupr_list.append(auprc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
+                auroc_list.append(auroc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
+                p_aupr_list.append(auprc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
+                p_auroc_list.append(auroc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
+
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
             # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 400: break
+            if args.break_early and batch_nr == 16: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
@@ -129,9 +135,11 @@ def test_detector(args):
     for key, value in log.items():
         print('    {:15s}: {}'.format(str(key), value))
 
+    print("ID:", args.dataset, " ---  OOD:", args.ood_dataset)
     print("AUROC: ", sum(auroc_list)/len(auroc_list))
     print("AUPR:  ", sum(aupr_list)/len(aupr_list))
-    print("ID:", args.dataset, " ---  OOD:", args.ood_dataset)
+    print("Perturbed AUROC: ", sum(p_auroc_list) / len(p_auroc_list))
+    print("Perturbed AUPR:  ", sum(p_aupr_list) / len(p_aupr_list))
 
     print("Finished Testing the Model")
 
@@ -153,6 +161,20 @@ def set_id_ood_datadirs(args):
         args.ood_data_dir = "data/"
     else:
         raise ValueError("Unknown OOD dataset specified, no path to the dataset available")
+
+
+# Copied from Alex's code
+def auprc(values_in, values_out):
+    y_true = len(values_in)*[1] + len(values_out)*[0]
+    y_score = np.concatenate([values_in, values_out])
+    return sklearn.metrics.average_precision_score(y_true, y_score)
+
+
+# Copied from Alex's code
+def auroc(values_in, values_out):
+    y_true = len(values_in)*[1] + len(values_out)*[0]
+    y_score = np.concatenate([np.nan_to_num(values_in, nan=0.0), np.nan_to_num(values_out, nan=0.0)])
+    return sklearn.metrics.roc_auc_score(y_true, y_score)
 
 
 def parse_args():
