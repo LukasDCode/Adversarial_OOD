@@ -76,13 +76,14 @@ def test_detector(args):
         detector.eval()
         criterion = torch.nn.CrossEntropyLoss().to(args.device)
         for batch_nr, (id_data, ood_data) in enumerate(tqdm(test_dataloader)):
+            if args.device == "cuda": torch.cuda.empty_cache()
             inputs, labels = shuffle_batch_elements(id_data, ood_data)
             # from ViT training validation
             metrics.reset()
             inputs, labels = inputs.to(device=args.device), labels.to(device=args.device)
 
             outputs = detector(inputs, not_contrastive_acc=True)
-            if args.device == "cuda": torch.cuda.empty_cache()
+            #if args.device == "cuda": torch.cuda.empty_cache()
 
             loss = criterion(outputs, labels)
             acc1, acc2 = accuracy(outputs, labels, topk=(1, 2))
@@ -111,7 +112,7 @@ def test_detector(args):
             if args.device == "cuda": torch.cuda.empty_cache()
 
             # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 250: break
+            if args.break_early and batch_nr == 300: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
