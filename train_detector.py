@@ -150,10 +150,8 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
             acc1s.append(acc1.item())
             acc2s.append(acc2.item())
 
-            # CHANGE calculate AUROC and AUPR
-            predictions = torch.gather(nnf.softmax(batch_pred, dim=1), dim=1, index=batch_target.unsqueeze(-1)).squeeze(1)
-            aupr_list.append(auprc(batch_target.to(device="cpu"), predictions.to(device="cpu")))
-            auroc_list.append(auroc(batch_target.to(device="cpu"), predictions.to(device="cpu")))
+            aupr_list.append(sklearn.metrics.average_precision_score(batch_target.to(device="cpu"), batch_pred[:, 1].to(device="cpu")))
+            auroc_list.append(sklearn.metrics.roc_auc_score(batch_target.to(device="cpu"), batch_pred[:, 1].to(device="cpu")))
 
             if attack:
                 # Here also the ID data gets perturbed, but actually it is just an augmentation
@@ -167,12 +165,10 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
                 acc1s.append(p_acc1.item())
                 acc2s.append(p_acc2.item())
 
-                # calculate AUROC and AUPR and add them to the lists with all values and the lists with only values from perturbed samples
-                p_predictions = torch.gather(nnf.softmax(perturbed_batch_pred, dim=1), dim=1, index=batch_target.unsqueeze(-1)).squeeze(1)
-                aupr_list.append(auprc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
-                auroc_list.append(auroc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
-                p_aupr_list.append(auprc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
-                p_auroc_list.append(auroc(batch_target.to(device="cpu"), p_predictions.to(device="cpu")))
+                aupr_list.append(sklearn.metrics.average_precision_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
+                auroc_list.append(sklearn.metrics.roc_auc_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
+                p_aupr_list.append(sklearn.metrics.average_precision_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
+                p_auroc_list.append(sklearn.metrics.roc_auc_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
 
             # break out of validation sooner, because a full validation takes around 16h same as 1 epoch, 1 iteration takes ~20sec
             if break_early and batch_idx == 10: break
@@ -189,10 +185,11 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
     metrics.update('acc2', acc2)
 
     # print AUROC and AUPR values for this epoch
-    print("Epoch", epoch, "- AUROC: ", sum(auroc_list)/len(auroc_list))
+    print("\nEpoch", epoch, "- AUROC: ", sum(auroc_list)/len(auroc_list))
     print("Epoch", epoch, "- AUPR :  ", sum(aupr_list)/len(aupr_list))
     print("Epoch", epoch, "- Perturbed AUROC: ", sum(p_auroc_list) / len(p_auroc_list))
     print("Epoch", epoch, "- Perturbed AUPR:  ", sum(p_aupr_list) / len(p_aupr_list))
+    print("\n")
 
     return metrics.result()
 

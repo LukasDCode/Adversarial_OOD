@@ -90,10 +90,8 @@ def test_detector(args):
             acc1s.append(acc1.item())
             acc2s.append(acc2.item())
 
-            # calculate AUROC and AUPR values
-            predictions = torch.gather(nnf.softmax(outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1)
-            aupr_list.append(auprc(labels.to(device="cpu"), predictions.to(device="cpu")))
-            auroc_list.append(auroc(labels.to(device="cpu"), predictions.to(device="cpu")))
+            aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"), outputs[:, 1].to(device="cpu")))
+            auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"), outputs[:, 1].to(device="cpu")))
 
             if attack:
                 perturbed_inputs, _, _ = attack(inputs, labels)
@@ -105,20 +103,15 @@ def test_detector(args):
                 acc1s.append(acc1.item())
                 acc2s.append(acc2.item())
 
-
-                p_predictions = torch.gather(nnf.softmax(p_outputs, dim=1), dim=1, index=labels.unsqueeze(-1)).squeeze(1)
-
-                # values get added to the normal list and to the list with only the values of the perturbed samples
-                aupr_list.append(auprc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
-                auroc_list.append(auroc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
-                p_aupr_list.append(auprc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
-                p_auroc_list.append(auroc(labels.to(device="cpu"), p_predictions.to(device="cpu")))
-
+                aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
+                auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
+                p_aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
+                p_auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
             # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 16: break
+            if args.break_early and batch_nr == 250: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
@@ -135,13 +128,13 @@ def test_detector(args):
     for key, value in log.items():
         print('    {:15s}: {}'.format(str(key), value))
 
-    print("ID:", args.dataset, " ---  OOD:", args.ood_dataset)
+    print("\nID:", args.dataset, " ---  OOD:", args.ood_dataset)
     print("AUROC: ", sum(auroc_list)/len(auroc_list))
     print("AUPR:  ", sum(aupr_list)/len(aupr_list))
     print("Perturbed AUROC: ", sum(p_auroc_list) / len(p_auroc_list))
     print("Perturbed AUPR:  ", sum(p_aupr_list) / len(p_aupr_list))
 
-    print("Finished Testing the Model")
+    print("\nFinished Testing the Model")
 
 
 def set_id_ood_datadirs(args):
