@@ -13,6 +13,14 @@ from utils.store_model import load_classifier
 
 
 def get_model_from_args(args, model_name, num_classes):
+    """
+    get_model_from_args loads a classifier model from the specified arguments dotdict
+
+    :args: dotdict containing all the arguments
+    :model_name: string stating what kind of model should be loaded as a classifier
+    :num_classes: integer specifying how many classes the classifier should be able to detect
+    :return: loaded classifier model
+    """
     if model_name.lower() == "resnet":
         model = torchvision.models.resnet18(pretrained=False, num_classes=num_classes).to(device=args.device) # cuda()
     elif model_name.lower() == "vit":
@@ -39,6 +47,11 @@ def get_model_from_args(args, model_name, num_classes):
 
 
 def test_classifier(args):
+    """
+    test_classifier runs one epoch of all test samples to evaluate the classifiers' performance.
+
+    :args: dotdict containing all the arguments
+    """
     classifier = load_classifier(args)
 
     # metric tracker
@@ -97,7 +110,11 @@ def test_classifier(args):
 
 def error_criterion(outputs, labels):
     """
-    used to calculate the errors in the validation phase
+    error_criterion used to calculate the errors in the validation phase
+
+    :outputs: batch with all the model outputs
+    :labels: ground truth labels the model should have optimally predicted
+    :return: numerical value as the error
     """
     prediction_tensor = torch.max(outputs, dim=1) #torch.where(outputs > 0., 1., 0.)
     train_error = (prediction_tensor.indices != labels).float().sum() / prediction_tensor.indices.size()[0]
@@ -105,6 +122,11 @@ def error_criterion(outputs, labels):
 
 
 def parse_args():
+    """
+    parse_args retrieves the arguments from the command line and parses them into the arguments dotdict.
+
+    :return: dotdict with all the arguments
+    """
     parser = argparse.ArgumentParser(description='Run the monotone PGD attack on a batch of images, default is with ViT and the MPGD of Alex, where cifar10 is ID and cifar100 is OOD')
 
     parser.add_argument('--model', type=str, default="vit", help='str - what model should be used to classify input samples "vit", "resnet", "mininet" or "cnn_ibp"')

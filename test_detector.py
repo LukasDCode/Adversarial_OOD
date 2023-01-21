@@ -3,7 +3,6 @@ import sys
 import argparse
 from tqdm import tqdm
 import torch
-import torch.nn.functional as nnf
 import torchvision
 import numpy as np
 import sklearn.metrics
@@ -18,6 +17,14 @@ from train_detector import get_noise_from_args, shuffle_batch_elements
 
 
 def get_model_from_args(args, model_name, num_classes):
+    """
+    get_model_from_args loads a classifier model from the specified arguments dotdict
+
+    :args: dotdict containing all the arguments
+    :model_name: string stating what kind of model should be loaded as a classifier
+    :num_classes: integer specifying how many classes the classifier should be able to detect
+    :return: loaded classifier model
+    """
     if model_name.lower() == "resnet":
         model = torchvision.models.resnet18(pretrained=False, num_classes=num_classes).to(device=args.device) # cuda()
     elif model_name.lower() == "vit":
@@ -39,9 +46,17 @@ def get_model_from_args(args, model_name, num_classes):
 
 
 def test_detector(args):
+    """
+    test_classifier runs one epoch of all test samples to evaluate the detectors' performance.
+
+    :args: dotdict containing all the arguments
+    """
     classifier = load_classifier(args)
     detector = load_detector(args)
     classifier, detector = classifier.to(args.device), detector.to(args.device)
+
+    # CHANGE # TODO remove
+    args.batch_size = 16
 
     # writes the datadirs directly into the args
     set_id_ood_datadirs(args)
@@ -53,8 +68,7 @@ def test_detector(args):
     losses = []
     acc1s = []
     acc2s = []
-    auroc_list, aupr_list = [], [] # lists for the values of all samples
-    p_auroc_list, p_aupr_list = [], [] # lists for the values of only the perturbed samples
+    auroc_list, aupr_list = [], [] # lists for the auroc and aupr values of all samples
 
     # get a dataloader mixed 50:50 with ID and OOD data and labels of 0 (ID) and 1 (OOD)
     if args.dataset == 'svhn': args.dataset = 'SVHN'
@@ -106,13 +120,11 @@ def test_detector(args):
 
                 aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
                 auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
-                p_aupr_list.append(sklearn.metrics.average_precision_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
-                p_auroc_list.append(sklearn.metrics.roc_auc_score(labels.to(device="cpu"), p_outputs[:, 1].to(device="cpu")))
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
             # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 300: break
+            if args.break_early and batch_nr == 1200: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
@@ -129,16 +141,19 @@ def test_detector(args):
     for key, value in log.items():
         print('    {:15s}: {}'.format(str(key), value))
 
-    print("\nID:", args.dataset, " ---  OOD:", args.ood_dataset)
+    print("ID:", args.dataset, " ---  OOD:", args.ood_dataset)
     print("AUROC: ", sum(auroc_list)/len(auroc_list))
     print("AUPR:  ", sum(aupr_list)/len(aupr_list))
-    print("Perturbed AUROC: ", sum(p_auroc_list) / len(p_auroc_list))
-    print("Perturbed AUPR:  ", sum(p_aupr_list) / len(p_aupr_list))
 
-    print("\nFinished Testing the Model")
+    print("Finished Testing the Model")
 
 
 def set_id_ood_datadirs(args):
+    """
+    set_id_ood_datadirs modifies the arguments dotdict to contain the right paths where to load the datasets from.
+
+    :args: dotdict containing all arguments (including the paths of the id and ood datasets)
+    """
     if args.dataset.lower() == "cifar10":
         args.data_dir = "data/cifar10/"
     elif args.dataset.lower() == "cifar100":
@@ -157,21 +172,12 @@ def set_id_ood_datadirs(args):
         raise ValueError("Unknown OOD dataset specified, no path to the dataset available")
 
 
-# Copied from Alex's code
-def auprc(values_in, values_out):
-    y_true = len(values_in)*[1] + len(values_out)*[0]
-    y_score = np.concatenate([values_in, values_out])
-    return sklearn.metrics.average_precision_score(y_true, y_score)
-
-
-# Copied from Alex's code
-def auroc(values_in, values_out):
-    y_true = len(values_in)*[1] + len(values_out)*[0]
-    y_score = np.concatenate([np.nan_to_num(values_in, nan=0.0), np.nan_to_num(values_out, nan=0.0)])
-    return sklearn.metrics.roc_auc_score(y_true, y_score)
-
-
 def parse_args():
+    """
+    parse_args retrieves the arguments from the command line and parses them into the arguments dotdict.
+
+    :return: dotdict with all the arguments
+    """
     parser = argparse.ArgumentParser(description='Run the monotone PGD attack on a batch of images, default is with ViT and the MPGD of Alex, where cifar10 is ID and cifar100 is OOD')
 
     parser.add_argument('--model', type=str, default="vit", help='str - what model should be used to classify input samples "vit", "resnet", "mininet" or "cnn_ibp"')
@@ -207,5 +213,5 @@ if __name__ == '__main__':
         args.num_workers = 0
 
     test_detector(args)
-    print("finished all executions")
+    print("finished all executions\n")
 

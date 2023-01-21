@@ -21,6 +21,14 @@ from utils.cifar100_labels import cifar100_labels
 
 
 def get_model_from_args(args, model_name, num_classes):
+    """
+    get_model_from_args loads a classifier model from the specified arguments dotdict
+
+    :args: dotdict containing all the arguments
+    :model_name: string stating what kind of model should be loaded as a classifier
+    :num_classes: integer specifying how many classes the classifier should be able to detect
+    :return: loaded classifier model
+    """
     if model_name.lower() == "resnet":
         model = torchvision.models.resnet18(pretrained=False, num_classes=num_classes).to(device=args.device) # cuda()
     elif model_name.lower() == "vit":
@@ -43,11 +51,19 @@ def get_model_from_args(args, model_name, num_classes):
 
 
 def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False): # img [3, 224, 224]
-    # # Detection - Visualize encoder-decoder multi-head attention weights
-    # Here we visualize attention weights of the last decoder layer. This corresponds to visualizing, for each
-    # detected objects, which part of the image the model was looking at to predict this specific bounding box and class.
-    # We will use hooks to extract attention weights (averaged over all heads) from the transformer.
+    """
+    visualize_attn_embeddings visualizes attention weights of every encoder layer. This corresponds to visualizing,
+    for each detected object, which part of the image the model was looked at to predict this specific bounding box
+    and class. It uses hooks to extract attention weights (averaged over all heads) from the transformer.
+    The attention maps for this sample are plotted and saved in the 'figures/attention/' directory.
 
+    :model: detector model
+    :img: one image in tensor representation [channel_size, pixel_width, pixel_height] with values [0;1]
+    :img_label: string representation of the image label
+    :ood: boolean flag if it is an ood sample
+    :pert: boolean flag if it is a perturbed sample
+    """
+    # # Detection - Visualize encoder-decoder multi-head attention weights
     # use lists to store the outputs via up-values
     conv_features, enc_attn_weights, cls_token_attn = [], [], []
     hooks = [
@@ -152,6 +168,14 @@ def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False): # i
 
 
 def visualize_detector_attention(args):
+    """
+    visualize_detector_attention runs one epoch of all test samples and breaks after a specified amount of batches.
+    The number of batches can be specified in the args. For every batch one sample is randomly chosen and its attention
+    maps are plotted and saved in the 'figures/attention/' directory.
+    The plotting and storing is done for a clean and for a perturbed sample.
+
+    :args: dotdict containing all the arguments
+    """
     classifier = load_classifier(args)
     detector = load_detector(args)
     classifier, detector = classifier.to(args.device), detector.to(args.device)
@@ -278,6 +302,11 @@ def visualize_detector_attention(args):
 
 
 def set_id_ood_datadirs(args):
+    """
+    set_id_ood_datadirs modifies the arguments dotdict to contain the right paths where to load the datasets from.
+
+    :args: dotdict containing all arguments (including the paths of the id and ood datasets)
+    """
     if args.dataset.lower() == "cifar10":
         args.data_dir = "data/cifar10/"
     elif args.dataset.lower() == "cifar100":
@@ -297,6 +326,13 @@ def set_id_ood_datadirs(args):
 
 
 def get_string_label_for_sample(label, dataset):
+    """
+    get_string_label_for_sample returns the string representation from the numerical representaion of a label.
+
+    :label: integer for the numerical representation of a label
+    :dataset: string indicating which dataset the label is from
+    :return: string representation of the label
+    """
     if dataset == "cifar10":
         return cifar10_labels[label]
     elif dataset == "cifar100":
@@ -308,6 +344,11 @@ def get_string_label_for_sample(label, dataset):
 
 
 def parse_args():
+    """
+    parse_args retrieves the arguments from the command line and parses them into the arguments dotdict.
+
+    :return: dotdict with all the arguments
+    """
     parser = argparse.ArgumentParser(description='Run the monotone PGD attack on a batch of images, default is with ViT and the MPGD of Alex, where cifar10 is ID and cifar100 is OOD')
 
     parser.add_argument('--model', type=str, default="vit", help='str - what model should be used to classify input samples "vit", "resnet", "mininet" or "cnn_ibp"')

@@ -13,11 +13,16 @@ from vit.src.data_loaders import create_dataloaders
 from vit.src.utils import setup_device, accuracy, MetricTracker, TensorboardWriter,write_json
 from util import adjust_learning_rate
 from losses import SupConLoss
-from OOD_Distance import run_ood_distance
 
 
 def train_epoch(epoch, model, data_loader, criterion, optimizer, lr_scheduler, metrics, device=torch.device('cpu'),
                 contrastive=False, test_contrastive_acc=False, method=None, criterion2=None, head=None, mixup_fn=None):
+    """
+    train_epoch trains the classifier for one epoch, every epoch this function gets called again.
+
+    the params should be self explainatory
+    :return: results of a metrics writer object with the top1 and top5 accuracies
+    """
     metrics.reset()
 
     # training loop
@@ -76,6 +81,13 @@ def train_epoch(epoch, model, data_loader, criterion, optimizer, lr_scheduler, m
 
 
 def valid_epoch(epoch, model, data_loader, criterion, metrics, device=torch.device('cpu')):
+    """
+    valid_epoch validates each epoch of a classifier during training
+
+    parameters include the epoch as an int, the model (= classifier) that is being trained right now, the data_loader
+    containing the data samples, a loss and the accuracy metrics that get updated.
+    :return: results of a metrics writer object with the top1 and top5 accuracies
+    """
     metrics.reset()
     losses = []
     acc1s = []
@@ -105,27 +117,14 @@ def valid_epoch(epoch, model, data_loader, criterion, metrics, device=torch.devi
     return metrics.result()
 
 
-# CHANGE Currently completely commented out in the code
-def save_model(save_dir, epoch, model, optimizer, lr_scheduler, device_ids, best=False, save_freq=100):
-    state = {
-        'epoch': epoch,
-        'state_dict': model.state_dict() if len(device_ids) <= 1 else model.module.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'lr_scheduler': None if lr_scheduler is None else lr_scheduler.state_dict(),
-    }
-    filename = str(save_dir + 'ckpt_epoch_current.pth')
-    torch.save(state, filename)
-
-    if best:
-        filename = str(save_dir + 'ckpt_epoch_best.pth')
-        torch.save(state, filename)
-    elif epoch%save_freq==0:
-        filename = str(save_dir + 'ckpt_epoch_' + str(epoch) + '.pth')
-        print('Saving file : ',filename)
-        torch.save(state, filename)
-
-
 def main(args, device, device_ids):
+    """
+    main supervises the entire classifier training, from loading the model, applying pre-trained weights,
+    specifying the loss and actually starting the training.
+
+    parameters include all the arguments as a dotdict for the entire process, device whether its cpu or cuda
+    and if it is run on cuda also the ids of the cuda cores.
+    """
 
     # tensorboard
     if args.tensorboard:
@@ -291,6 +290,11 @@ def main(args, device, device_ids):
 
 # CHANGE
 def save_vit_model(args, model, optimizer, epoch):
+    """
+    save_model stores the weights of the classifier, so it can later be loaded and used again
+
+    parameters include the entire arguments dotdict and the classifier that gets stored.
+    """
 
     #CHANGE currently only vit supported
     args.model = "vit"

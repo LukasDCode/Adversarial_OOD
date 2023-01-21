@@ -4,7 +4,6 @@ import random
 import copy
 import torch
 import torch.nn as nn
-import torch.nn.functional as nnf
 import numpy as np
 import sklearn.metrics
 from tqdm import tqdm
@@ -23,6 +22,13 @@ from utils.ood_detection.PGD_attack import MonotonePGD, MaxConf, get_noise_from_
 
 def train_epoch(epoch, detector, data_loader, criterion, optimizer, attack, lr_scheduler, metrics,
                 device=torch.device('cpu'), contrastive=False, test_contrastive_acc=False, method=None, criterion2=None, head=None, mixup_fn=None, break_early=False):
+    """
+    train_epoch trains the detector for one epoch, every epoch this function gets called again. It inserts the clean
+    samples into the model and also a perturbed version, which was perturbed by the PGD attack.
+
+    the params should be self explainatory
+    :return: results of a metrics writer object with the top1 and top2 accuracies.
+    """
     metrics.reset()
 
     # training loop
@@ -122,12 +128,19 @@ def train_epoch(epoch, detector, data_loader, criterion, optimizer, attack, lr_s
 
 
 def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device=torch.device('cpu'), break_early=False):
+    """
+    valid_epoch validates each epoch of a detector during training
+
+    parameters include the epoch as an int, the detector model that is being trained right now, the pgd attack,
+    the data_loader containing the data samples, a loss and the accuracy metrics that get updated.
+    :return: results of a metrics writer object with the top1 and top5 accuracies
+    """
+
     metrics.reset()
     losses = []
     acc1s = []
     acc2s = []
-    auroc_list, aupr_list = [], []  # lists for the values of all samples
-    p_auroc_list, p_aupr_list = [], []  # lists for the values of only the perturbed samples
+    auroc_list, aupr_list = [], []  # lists for the auroc and aupr values of all samples
 
 
     criterion = torch.nn.CrossEntropyLoss()
@@ -167,8 +180,6 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
 
                 aupr_list.append(sklearn.metrics.average_precision_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
                 auroc_list.append(sklearn.metrics.roc_auc_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
-                p_aupr_list.append(sklearn.metrics.average_precision_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
-                p_auroc_list.append(sklearn.metrics.roc_auc_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
 
             # break out of validation sooner, because a full validation takes around 16h same as 1 epoch, 1 iteration takes ~20sec
             if break_early and batch_idx == 10: break
@@ -185,30 +196,21 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
     metrics.update('acc2', acc2)
 
     # print AUROC and AUPR values for this epoch
-    print("\nEpoch", epoch, "- AUROC: ", sum(auroc_list)/len(auroc_list))
+    print("Epoch", epoch, "- AUROC: ", sum(auroc_list)/len(auroc_list))
     print("Epoch", epoch, "- AUPR :  ", sum(aupr_list)/len(aupr_list))
-    print("Epoch", epoch, "- Perturbed AUROC: ", sum(p_auroc_list) / len(p_auroc_list))
-    print("Epoch", epoch, "- Perturbed AUPR:  ", sum(p_aupr_list) / len(p_aupr_list))
-    print("\n")
 
     return metrics.result()
 
 
-# Copied from Alex's code
-def auprc(values_in, values_out):
-    y_true = len(values_in)*[1] + len(values_out)*[0]
-    y_score = np.concatenate([values_in, values_out])
-    return sklearn.metrics.average_precision_score(y_true, y_score)
-
-
-# Copied from Alex's code
-def auroc(values_in, values_out):
-    y_true = len(values_in)*[1] + len(values_out)*[0]
-    y_score = np.concatenate([np.nan_to_num(values_in, nan=0.0), np.nan_to_num(values_out, nan=0.0)])
-    return sklearn.metrics.roc_auc_score(y_true, y_score)
-
-
 def main(args, device):
+    """
+    main supervises the entire detector training, from loading the classifier and the detector models,
+    applying pre-trained weights, specifying the loss, loading the ID and OOD datasets, loading the PGD attack
+    and actually starting the detector training.
+    Note: this function can only run on 1 cuda core. There is currently no parallelization possible.
+
+    parameters include all the arguments as a dotdict for the entire process and the device whether its cpu or cuda.
+    """
     # metric tracker
     metric_names = ['loss', 'acc1', 'acc2']
     train_metrics = MetricTracker(*[metric for metric in metric_names], writer=None)
@@ -382,6 +384,10 @@ def shuffle_batch_elements(data_id, data_ood):
     also shuffles the labels of ID and OOD of the same data batch in the same order --> return: shuffled_targets
     in the end every shuffled_inputs shuffled_targets tensor contains batch_size/2 samples of the ID and
     batch_size/2 samples of the OOD dataset (default is 32 ID + 32 OOD)
+
+    :data_id: data batch of id data with its labels
+    :data_ood: data batch of ood data with its labels
+    :return: returns the shuffled id and ood samples and the shuffled id and ood labels
     """
     randomness = list(range(data_id[1].size(dim=0) + data_ood[1].size(dim=0))) # list of indices will determine the shuffle of inputs & targets alike
     random.shuffle(randomness)  # shuffle tensor elements randomly
@@ -395,6 +401,13 @@ def shuffle_batch_elements(data_id, data_ood):
 
 
 def load_classifier(args):
+    """
+    load_classifier loads the weights of a specified classifier, the path is specified in the arguments
+
+    :args: the entire arguments dotdict with all parameters
+    :return: the loaded classifier model
+    """
+
     if args.classifier_ckpt_path:  # args.classification_ckpt #checkpoint_path
         checkpoint_path = args.classifier_ckpt_path  # args.classification_ckpt
     else:
@@ -428,6 +441,12 @@ def load_classifier(args):
 
 
 def save_vit_detector(args, model, optimizer, epoch):
+    """
+    save_vit_detector stores the weights of the detector, so it can later be loaded and used again
+
+    parameters include the entire arguments dotdict and the detector that gets stored.
+    """
+
     saved_model_name = args.model + "_" + args.model_arch + "_" + str(args.image_size) + args.method + "_id_" +\
                        args.dataset + "_ood_" + args.ood_dataset + "_bs" + str(args.batch_size) + "_best_accuracy.pth"
     model_path = "saved_models/trained_detector/"
@@ -465,6 +484,11 @@ def save_vit_detector(args, model, optimizer, epoch):
 
 
 def get_train_detector_args():
+    """
+    get_train_detector_args retrieves the arguments from the command line and parses them into the arguments dotdict.
+
+    :return: dotdict with all the arguments
+    """
     parser = argparse.ArgumentParser("Visual Transformer Train/Fine-tune")
 
     # basic args
