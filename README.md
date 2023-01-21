@@ -30,7 +30,7 @@ But in order to download other models refer to [the official github page](https:
 
 ## Train a Vision Transformer Classifier
 
-To train a ViT model with **batch size 32** on Cifar-10, Cifar-100 and SVHN respectively, execute one of the following lines:
+To train a ViT model with **batch size 32** on Cifar-10, Cifar-100 and SVHN respectively for 60 epochs, execute one of the following lines:
 ```shell
 python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 32 --method SupCE --data-dir data/cifar10/ --dataset cifar10 --num-classes 10 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
 python train_classifier.py --train-steps 95000 --model-arch b16 --image-size 224 --lr 0.01 --wd 1e-5 --n-gpu 2 --num-workers 8 --batch-size 32 --method SupCE --data-dir data/cifar100/ --dataset cifar100 --num-classes 100 --checkpoint-path saved_models/pretrained/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_224.npz
@@ -71,6 +71,7 @@ By default the trained detector gets placed in the ```saved_models/trained_detec
 The attack has 18 cycles for 2 restarts and 5 iterations $[18 = (2+1) * (5+1)]$.
 
 ![Training pipeline for an detector displaying the usage of clean and perturbed image samples.](figures/graphics/detector_training_pipeline.png)
+*Visualization of the training pipeline for a detector including the PGD attack.*
 
 
 ### Test the OOD Detector
