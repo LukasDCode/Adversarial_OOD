@@ -121,8 +121,9 @@ def train_epoch(epoch, detector, data_loader, criterion, optimizer, attack, lr_s
                 print("Train Epoch: {:03d} Batch: {:05d}/{:05d} Loss: {:.4f} Acc@1: {:.2f}, Acc@2: {:.2f}"
                         .format(epoch, batch_idx, len(data_loader), loss.item(), 0 if contrastive else acc1.item(),0 if contrastive else acc2.item()))#, acc5.item()
 
-        # break out of loop sooner, because a full epoch takes around 16h, 1 iteration takes ~20sec
-        if break_early and batch_idx == 10: break
+        # break out of loop sooner, because a full epoch takes around 16h only training, 1 iteration takes ~20sec
+        # used for development & debugging
+        if break_early and batch_idx == 3: break
 
     return metrics.result()
 
@@ -181,9 +182,9 @@ def valid_epoch(epoch, detector, attack, data_loader, criterion, metrics, device
                 aupr_list.append(sklearn.metrics.average_precision_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
                 auroc_list.append(sklearn.metrics.roc_auc_score(batch_target.to(device="cpu"), perturbed_batch_pred[:, 1].to(device="cpu")))
 
-            # break out of validation sooner, because a full validation takes around 16h same as 1 epoch, 1 iteration takes ~20sec
-            if break_early and batch_idx == 10: break
-            elif batch_idx == 200: break # TODO remove this is for validation to only take 1h instead of 3.5h
+            # break out of validation sooner, because a full validation takes around 3.5h, 1 iteration takes ~20sec
+            # used for development & debugging
+            if break_early and batch_idx == 3: break
 
 
     loss = np.mean(losses)
@@ -266,7 +267,7 @@ def main(args, device):
     classifier = classifier.to(device)
 
     # create dataloader
-    # CHANGE svhn dataloader is in capital letters, later reset to lower case
+    # svhn dataloader is in capital letters, later reset to lower case
     if args.dataset == 'svhn': args.dataset = 'SVHN'
     train_dataloader, valid_dataloader = create_dataloaders(args)
     if args.dataset == 'SVHN': args.dataset = 'svhn'
@@ -368,14 +369,14 @@ def main(args, device):
         for key, value in log.items():
             print('    {:15s}: {}'.format(str(key), value))
 
-        # a full epoch takes ~16h to execute and n epochs take n times as much time
+        # a full epoch takes ~20h to execute without breaks and n epochs take n times as much time
+        # used for development & debugging
         if args.break_early and epoch == 1: break
 
 
     if args.test_contrastive_acc or args.eval or not args.contrastive:
         print("Best accuracy : ", best_acc, ' for ', best_epoch)# saving class mean
-        #best_curr_acc = {'best_acc': best_acc,'best_epoch': best_epoch,
-        #                 'curr_acc': log['val_acc1'],'curr_epoch': epoch}
+
 
 
 def shuffle_batch_elements(data_id, data_ood):
@@ -452,8 +453,8 @@ def save_vit_detector(args, model, optimizer, epoch):
     model_path = "saved_models/trained_detector/"
 
     torch.save({
-        'model_name': args.model, # args.model,
-        'loss': args.method,  # args.loss, #args.method,
+        'model_name': args.model,
+        'loss': args.method,
         'dataset': args.dataset,
         'ood_dataset': args.ood_dataset,
         'num_classes': args.num_classes,
@@ -465,7 +466,7 @@ def save_vit_detector(args, model, optimizer, epoch):
         'stepsize': args.stepsize,
         'noise': args.noise,
 
-        'image_size': args.image_size, # args.img_size, # args.image_size,
+        'image_size': args.image_size,
         'batch_size': args.batch_size,
         'patch_size': args.patch_size,
 

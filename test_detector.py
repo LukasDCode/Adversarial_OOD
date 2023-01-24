@@ -48,6 +48,9 @@ def get_model_from_args(args, model_name, num_classes):
 def test_detector(args):
     """
     test_classifier runs one epoch of all test samples to evaluate the detectors' performance.
+    Loads test datasets, loads pgd attack, merges id and ood datasets, iterates over each batch, feeds input into model,
+    compares outcome with label, calculates metrics, perturbs input, feeds perturbed input into model, compares outcome
+    with label, evaluates metrics and prints metrics out at the end.
 
     :args: dotdict containing all the arguments
     """
@@ -123,8 +126,9 @@ def test_detector(args):
 
             if args.device == "cuda": torch.cuda.empty_cache()
 
-            # break out of loop sooner, because a testing takes around 16h equal to one epoch of training, 1 iteration takes ~20sec
-            if args.break_early and batch_nr == 1200: break
+            # break out of loop sooner, because a full epoch takes around 16h only testing, 1 iteration takes ~20sec
+            # used for development & debugging
+            if args.break_early and batch_nr == 3: break
 
     loss = np.mean(losses)
     acc1 = np.mean(acc1s)
