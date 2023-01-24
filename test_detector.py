@@ -58,9 +58,6 @@ def test_detector(args):
     detector = load_detector(args)
     classifier, detector = classifier.to(args.device), detector.to(args.device)
 
-    # CHANGE # TODO remove
-    args.batch_size = 16
-
     # writes the datadirs directly into the args
     set_id_ood_datadirs(args)
 
