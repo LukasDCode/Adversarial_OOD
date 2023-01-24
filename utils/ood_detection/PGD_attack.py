@@ -281,7 +281,7 @@ class Restart_attack(Adversarial_attack):
 
 class MonotonePGD(Restart_attack):
     """
-    Code inspired by https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
+    Replicated from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
     """
     def __init__(self, eps, iterations, stepsize, num_classes, momentum=0.9, lr_smart=False, lr_decay=0.5, lr_gain=1.1,
                  norm='inf', loss='CrossEntropy', normalize_grad=False, early_stopping=0, restarts=0,
