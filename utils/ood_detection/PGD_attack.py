@@ -5,9 +5,6 @@ from vit.src.model import VisionTransformer
 
 
 def create_early_stopping_mask(out, y, conf_threshold, targeted):
-    """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
-    """
     finished = False
     conf, pred = torch.max(torch.nn.functional.softmax(out, dim=1), 1)
     conf_mask = conf > conf_threshold
@@ -25,9 +22,6 @@ def create_early_stopping_mask(out, y, conf_threshold, targeted):
     return finished, mask
 
 def calculate_smart_lr(prev_mean_lr, lr_accepted, lr_decay, iterations, max_lr):
-    """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
-    """
     accepted_idcs = lr_accepted > 0
     if torch.sum(accepted_idcs).item() > 0:
         new_lr = 0.5 * (prev_mean_lr + torch.mean(lr_accepted[lr_accepted > 0]).item())
@@ -38,9 +32,6 @@ def calculate_smart_lr(prev_mean_lr, lr_accepted, lr_decay, iterations, max_lr):
     return new_lr
 
 def normalize_perturbation(perturbation, p):
-    """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
-    """
     if p == 'inf':
         return perturbation.sign()
     elif p==2 or p==2.0:
@@ -52,9 +43,6 @@ def normalize_perturbation(perturbation, p):
         raise NotImplementedError('Projection only supports l2 and inf norm')
 
 def project_perturbation(perturbation, eps, p):
-    """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
-    """
     if p == 'inf':
         mask = perturbation.abs() > eps
         pert_normalized = perturbation
@@ -75,9 +63,6 @@ def project_perturbation(perturbation, eps, p):
         raise NotImplementedError('Projection only supports l2 and inf norm')
 
 def logits_diff_loss(out, y_oh, reduction='mean'):
-    """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
-    """
     #out: model output
     #y_oh: targets in one hot encoding
     #confidence:
@@ -157,9 +142,6 @@ class MaxConf(nn.Module):
             print('Error, reduction unknown!')
 
 class Adversarial_attack():
-    """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
-    """
     def __init__(self, loss, num_classes, model=None, save_trajectory=False):
         #loss should either be a string specifying one of the predefined loss functions
         #OR
@@ -230,9 +212,6 @@ class Adversarial_attack():
         raise NotImplementedError()
 
 class Restart_attack(Adversarial_attack):
-    """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
-    """
     #Base class for attacks that start from different initial values
     #Make sure that they MINIMIZE the given loss function
     def __init__(self, loss, restarts,  num_classes, model=None, save_trajectory=False):
@@ -302,7 +281,7 @@ class Restart_attack(Adversarial_attack):
 
 class MonotonePGD(Restart_attack):
     """
-    Code taken from https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
+    Code inspired by https://github.com/AlexMeinke/Provable-OOD-Detection/blob/master/utils/adversarial/attacks.py
     """
     def __init__(self, eps, iterations, stepsize, num_classes, momentum=0.9, lr_smart=False, lr_decay=0.5, lr_gain=1.1,
                  norm='inf', loss='CrossEntropy', normalize_grad=False, early_stopping=0, restarts=0,
@@ -358,8 +337,6 @@ class MonotonePGD(Restart_attack):
             pert = torch.clamp(x + pert, 0, 1) - x  # box constraint
             pert = project_perturbation(pert, self.eps, self.norm) # stolen from Alex
 
-
-        #TODO fix the datatype here !!!
         prev_loss = 1e13 * x.new_ones(x.shape[0], dtype=torch.float)
 
         prev_pert = pert.clone().detach()
@@ -457,7 +434,7 @@ class MonotonePGD(Restart_attack):
 
 class MonotonePGD_trial():
     """
-    try out for a self written pgd attack. working but not more performant than the original one.
+    Self-written PGD attack, fully functional but not more performant
     """
     def __init__(self, eps, iterations, stepsize, num_classes, model=None, momentum=0.9, lr_smart=False,
                  lr_decay=0.5, lr_gain=1.1, norm='inf', loss='CrossEntropy', normalize_grad=False, early_stopping=0,
