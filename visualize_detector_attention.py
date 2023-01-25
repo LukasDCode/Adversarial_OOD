@@ -50,7 +50,7 @@ def get_model_from_args(args, model_name, num_classes):
 
 
 
-def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False): # img [3, 224, 224]
+def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False, save_attention_maps=True): # img [3, 224, 224]
     """
     visualize_attn_embeddings visualizes attention weights of every encoder layer. This corresponds to visualizing,
     for each detected object, which part of the image the model was looked at to predict this specific bounding box
@@ -91,7 +91,7 @@ def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False): # i
 
     im = tensor_to_pil_image(img)
 
-    f_map = (14, 14) # TODO maybe try 16x16
+    f_map = (14, 14)
     head_to_show = 2  # change head number based on which attention u want to see
 
     print_attention_layers = [x for x in range(len(model.transformer.encoder_layers))]
@@ -154,6 +154,7 @@ def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False): # i
                     y = ((y // fact) + 0.5) * fact
                     fcenter_ax.add_patch(plt.Circle((x, y), fact // 3, color='r'))
                     fcenter_ax.axis('off')
+
             if ood:
                 if pert:
                     plt.savefig(f'figures/attention/perturbed/ood_pert_{img_label}_att-layer{i}.png')
@@ -164,7 +165,14 @@ def visualize_attn_embeddings(model, img, img_label, ood=False, pert=False): # i
                     plt.savefig(f'figures/attention/perturbed/id_pert_{img_label}_att-layer{i}.png')
                 else:
                     plt.savefig(f'figures/attention/clean/id_clean_{img_label}_att-layer{i}.png')
+
             plt.close('all')
+
+    id_ood_string = "OOD" if ood else "ID"
+    pert_string = "perturbed" if pert else "clean"
+    print("\nSaved", id_ood_string, pert_string, img_label)
+
+    return cls_attn
 
 
 def visualize_detector_attention(args):
@@ -221,6 +229,21 @@ def visualize_detector_attention(args):
         classifier.eval()
         detector.eval()
 
+        if args.print_attention_values:
+            id_max_cls_attn_diff_list, ood_max_cls_attn_diff_list = [], []
+            id_min_cls_attn_diff_list, ood_min_cls_attn_diff_list = [], []
+            id_avg_cls_attn_diff_list, ood_avg_cls_attn_diff_list = [], []
+            id_avg_cls_attn_list, p_id_avg_cls_attn_list = [], []
+            ood_avg_cls_attn_list, p_ood_avg_cls_attn_list = [], []
+            id_sum_cls_attn_list, p_id_sum_cls_attn_list = [], []
+            ood_sum_cls_attn_list, p_ood_sum_cls_attn_list = [], []
+            id_max_max_cls_attn_list, p_id_max_max_cls_attn_list = [], []
+            ood_max_max_cls_attn_list, p_ood_max_max_cls_attn_list = [], []
+            id_min_min_cls_attn_list, p_id_min_min_cls_attn_list = [], []
+            ood_min_min_cls_attn_list, p_ood_min_min_cls_attn_list = [], []
+            absolute_max_att_value, absolute_min_att_value = 0, 99999
+
+
         dataloader_iterator = iter(id_dataloader)
 
         for index, [ood_inputs, ood_labels] in enumerate(tqdm(ood_dataloader, disable=args.print_perturbation_path)):
@@ -264,13 +287,13 @@ def visualize_detector_attention(args):
             ood_label_string = get_string_label_for_sample(ood_label, args.ood_dataset)
 
             if not args.print_specific_id_label and not args.print_perturbation_path:
-                visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=False)
-                visualize_attn_embeddings(detector, ood_input, ood_label_string, ood=True, pert=False)
+                id_last_layer_cls_attn = visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=False, save_attention_maps=not args.print_attention_values)
+                ood_last_layer_cls_attn = visualize_attn_embeddings(detector, ood_input, ood_label_string, ood=True, pert=False, save_attention_maps=not args.print_attention_values)
 
             if args.print_specific_id_label:
                 specific_label = args.specific_label
                 if id_label_string == specific_label:
-                    visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=False)
+                    visualize_attn_embeddings(detector, id_input, id_label_string, ood=False, pert=False, save_attention_maps=not args.print_attention_values)
                     print("Found a sample with the label:", specific_label)
                     return
 
@@ -280,9 +303,24 @@ def visualize_detector_attention(args):
                 perturbed_id_input, perturbed_ood_input = perturbed_id_inputs[random_selection], perturbed_ood_inputs[random_selection]
 
                 if not args.print_specific_id_label and not args.print_perturbation_path:
-                    visualize_attn_embeddings(detector, perturbed_id_input, id_label_string, ood=False, pert=True)
-                    visualize_attn_embeddings(detector, perturbed_ood_input, ood_label_string, ood=True, pert=True)
+                    p_id_last_layer_cls_attn = visualize_attn_embeddings(detector, perturbed_id_input, id_label_string, ood=False, pert=True, save_attention_maps=not args.print_attention_values)
+                    p_ood_last_layer_cls_attn = visualize_attn_embeddings(detector, perturbed_ood_input, ood_label_string, ood=True, pert=True, save_attention_maps=not args.print_attention_values)
 
+                    if args.print_attention_values:
+                        store_class_attention_values(absolute_max_att_value, absolute_min_att_value,
+                                                     id_avg_cls_attn_diff_list, id_avg_cls_attn_list,
+                                                     id_last_layer_cls_attn, id_max_cls_attn_diff_list,
+                                                     id_max_max_cls_attn_list, id_min_cls_attn_diff_list,
+                                                     id_min_min_cls_attn_list, id_sum_cls_attn_list,
+                                                     ood_avg_cls_attn_diff_list, ood_avg_cls_attn_list,
+                                                     ood_last_layer_cls_attn, ood_max_cls_attn_diff_list,
+                                                     ood_max_max_cls_attn_list, ood_min_cls_attn_diff_list,
+                                                     ood_min_min_cls_attn_list, ood_sum_cls_attn_list,
+                                                     p_id_avg_cls_attn_list, p_id_last_layer_cls_attn,
+                                                     p_id_max_max_cls_attn_list, p_id_min_min_cls_attn_list,
+                                                     p_id_sum_cls_attn_list, p_ood_avg_cls_attn_list,
+                                                     p_ood_last_layer_cls_attn, p_ood_max_max_cls_attn_list,
+                                                     p_ood_min_min_cls_attn_list, p_ood_sum_cls_attn_list)
 
                 if args.print_perturbation_path:
                     if args.dataset == "cifar10":
@@ -297,6 +335,12 @@ def visualize_detector_attention(args):
                     print_single_image_modification_path(p_best_softmax_list[p_best_idx[random_selection].item()], len(id_dataloader.dataset.classes), id_class_list, ood_label_string)
 
             if index == args.visualize: break
+
+        if args.print_attention_values:
+            print_class_attention_info(id_max_max_cls_attn_list, id_min_min_cls_attn_list, ood_max_max_cls_attn_list,
+                                       ood_min_min_cls_attn_list, p_id_max_max_cls_attn_list,
+                                       p_id_min_min_cls_attn_list, p_ood_max_max_cls_attn_list,
+                                       p_ood_min_min_cls_attn_list)
 
     print("Finished visualizing the detector attention")
 
@@ -343,6 +387,131 @@ def get_string_label_for_sample(label, dataset):
         raise ValueError("dataset not supported, labels could not get fetched")
 
 
+def store_class_attention_values(absolute_max_att_value, absolute_min_att_value, id_avg_cls_attn_diff_list,
+                                 id_avg_cls_attn_list, id_last_layer_cls_attn, id_max_cls_attn_diff_list,
+                                 id_max_max_cls_attn_list, id_min_cls_attn_diff_list, id_min_min_cls_attn_list,
+                                 id_sum_cls_attn_list, ood_avg_cls_attn_diff_list, ood_avg_cls_attn_list,
+                                 ood_last_layer_cls_attn, ood_max_cls_attn_diff_list, ood_max_max_cls_attn_list,
+                                 ood_min_cls_attn_diff_list, ood_min_min_cls_attn_list, ood_sum_cls_attn_list,
+                                 p_id_avg_cls_attn_list, p_id_last_layer_cls_attn, p_id_max_max_cls_attn_list,
+                                 p_id_min_min_cls_attn_list, p_id_sum_cls_attn_list, p_ood_avg_cls_attn_list,
+                                 p_ood_last_layer_cls_attn, p_ood_max_max_cls_attn_list, p_ood_min_min_cls_attn_list,
+                                 p_ood_sum_cls_attn_list):
+
+    id_min = torch.min(id_last_layer_cls_attn).item()
+    p_id_min = torch.min(p_id_last_layer_cls_attn).item()
+    ood_min = torch.min(ood_last_layer_cls_attn).item()
+    p_ood_min = torch.min(p_ood_last_layer_cls_attn).item()
+    id_max = torch.max(id_last_layer_cls_attn).item()
+    p_id_max = torch.max(p_id_last_layer_cls_attn).item()
+    ood_max = torch.max(ood_last_layer_cls_attn).item()
+    p_ood_max = torch.max(p_ood_last_layer_cls_attn).item()
+
+    id_min_min_cls_attn_list.append(id_min)
+    p_id_min_min_cls_attn_list.append(p_id_min)
+    ood_min_min_cls_attn_list.append(ood_min)
+    p_ood_min_min_cls_attn_list.append(p_ood_min)
+    id_max_max_cls_attn_list.append(id_max)
+    p_id_max_max_cls_attn_list.append(p_id_max)
+    ood_max_max_cls_attn_list.append(ood_max)
+    p_ood_max_max_cls_attn_list.append(p_ood_max)
+
+    id_diff_cls_attn = p_id_last_layer_cls_attn - id_last_layer_cls_attn
+    ood_diff_cls_attn = p_ood_last_layer_cls_attn - ood_last_layer_cls_attn
+
+    id_max_cls_attn_diff = torch.max(id_diff_cls_attn).item()
+    ood_max_cls_attn_diff = torch.max(ood_diff_cls_attn).item()
+    id_min_cls_attn_diff = torch.min(id_diff_cls_attn).item()
+    ood_min_cls_attn_diff = torch.min(ood_diff_cls_attn).item()
+    id_avg_cls_attn_diff = torch.mean(id_diff_cls_attn).item()
+    ood_avg_cls_attn_diff = torch.mean(ood_diff_cls_attn).item()
+
+    if id_max > absolute_max_att_value:
+        absolute_max_att_value = id_max
+    if p_id_max > absolute_max_att_value:
+        absolute_max_att_value = p_id_max
+    if ood_max > absolute_max_att_value:
+        absolute_max_att_value = ood_max
+    if p_ood_max > absolute_max_att_value:
+        absolute_max_att_value = p_ood_max
+
+    if id_min < absolute_min_att_value:
+        absolute_min_att_value = id_min
+    if p_id_min < absolute_min_att_value:
+        absolute_min_att_value = p_id_min
+    if ood_min < absolute_min_att_value:
+        absolute_min_att_value = ood_min
+    if p_ood_min < absolute_min_att_value:
+        absolute_min_att_value = p_ood_min
+
+    id_max_cls_attn_diff_list.append(id_max_cls_attn_diff)
+    ood_max_cls_attn_diff_list.append(ood_max_cls_attn_diff)
+    id_min_cls_attn_diff_list.append(id_min_cls_attn_diff)
+    ood_min_cls_attn_diff_list.append(ood_min_cls_attn_diff)
+    id_avg_cls_attn_diff_list.append(id_avg_cls_attn_diff)
+    ood_avg_cls_attn_diff_list.append(ood_avg_cls_attn_diff)
+
+    id_avg_cls_attn_list.append(torch.mean(id_last_layer_cls_attn).item())
+    p_id_avg_cls_attn_list.append(torch.mean(p_id_last_layer_cls_attn).item())
+    ood_avg_cls_attn_list.append(torch.mean(ood_last_layer_cls_attn).item())
+    p_ood_avg_cls_attn_list.append(torch.mean(p_ood_last_layer_cls_attn).item())
+    id_sum_cls_attn_list.append(torch.sum(id_last_layer_cls_attn).item())
+    p_id_sum_cls_attn_list.append(torch.sum(p_id_last_layer_cls_attn).item())
+    ood_sum_cls_attn_list.append(torch.sum(ood_last_layer_cls_attn).item())
+    p_ood_sum_cls_attn_list.append(torch.sum(p_ood_last_layer_cls_attn).item())
+
+
+def print_class_attention_info(id_max_max_cls_attn_list, id_min_min_cls_attn_list, ood_max_max_cls_attn_list,
+                               ood_min_min_cls_attn_list, p_id_max_max_cls_attn_list, p_id_min_min_cls_attn_list,
+                               p_ood_max_max_cls_attn_list, p_ood_min_min_cls_attn_list):
+    print("ID:", args.dataset, " ---  OOD:", args.ood_dataset)
+    """
+            print("Max List ID Attention difference: ", max(id_max_cls_attn_diff_list))
+            print("Max List OOD Attention difference:", max(ood_max_cls_attn_diff_list))
+            print("Min List ID Attention difference: ", abs(min(id_min_cls_attn_diff_list)))
+            print("Min List OOD Attention difference:", abs(min(ood_min_cls_attn_diff_list)))
+            print("Avg List ID Attention difference: ", sum(id_avg_cls_attn_diff_list)/len(id_avg_cls_attn_diff_list))
+            print("Avg List OOD Attention difference:", sum(ood_avg_cls_attn_diff_list)/len(ood_avg_cls_attn_diff_list))
+
+            print("Avg ID unperturbed: ", sum(id_avg_cls_attn_list)/len(id_avg_cls_attn_list))
+            print("Avg ID perturbed:   ", sum(p_id_avg_cls_attn_list)/len(p_id_avg_cls_attn_list))
+            print("Avg OOD unperturbed:", sum(ood_avg_cls_attn_list)/len(ood_avg_cls_attn_list))
+            print("Avg OOD perturbed:  ", sum(p_ood_avg_cls_attn_list)/len(p_ood_avg_cls_attn_list))
+
+            print("Avg ID sum unperturbed: ", sum(id_sum_cls_attn_list) / len(id_sum_cls_attn_list))
+            print("Avg ID sum perturbed:   ", sum(p_id_sum_cls_attn_list) / len(p_id_sum_cls_attn_list))
+            print("Avg OOD sum unperturbed:", sum(ood_sum_cls_attn_list) / len(ood_sum_cls_attn_list))
+            print("Avg OOD sum perturbed:  ", sum(p_ood_sum_cls_attn_list) / len(p_ood_sum_cls_attn_list))
+
+            print("Min ID sum unperturbed: ", min(id_sum_cls_attn_list))
+            print("Min ID sum perturbed:   ", min(p_id_sum_cls_attn_list))
+            print("Max ID sum unperturbed: ", max(id_sum_cls_attn_list))
+            print("Max ID sum perturbed:   ", max(p_id_sum_cls_attn_list))
+            print("Min OOD sum unperturbed:", min(ood_sum_cls_attn_list))
+            print("Min OOD sum perturbed:  ", min(p_ood_sum_cls_attn_list))
+            print("Max OOD sum unperturbed:", max(ood_sum_cls_attn_list))
+            print("Max OOD sum perturbed:  ", max(p_ood_sum_cls_attn_list))
+
+            print("Absolute Minimum:", absolute_min_att_value)
+            print("Absolute Maximum:", absolute_max_att_value)
+            """
+    patch_attention_factor = 14 ** 2
+    print("ID avg min min:   ", sum(id_min_min_cls_attn_list) / len(id_min_min_cls_attn_list) * patch_attention_factor)
+    print("p_ID avg min min: ",
+          sum(p_id_min_min_cls_attn_list) / len(p_id_min_min_cls_attn_list) * patch_attention_factor)
+    print("OOD avg min min:  ",
+          sum(ood_min_min_cls_attn_list) / len(ood_min_min_cls_attn_list) * patch_attention_factor)
+    print("p_OOD avg min min:",
+          sum(p_ood_min_min_cls_attn_list) / len(p_ood_min_min_cls_attn_list) * patch_attention_factor)
+    print("ID avg max max:   ", sum(id_max_max_cls_attn_list) / len(id_max_max_cls_attn_list) * patch_attention_factor)
+    print("p_ID avg max max: ",
+          sum(p_id_max_max_cls_attn_list) / len(p_id_max_max_cls_attn_list) * patch_attention_factor)
+    print("OOD avg max max:  ",
+          sum(ood_max_max_cls_attn_list) / len(ood_max_max_cls_attn_list) * patch_attention_factor)
+    print("p_OOD avg max max:",
+          sum(p_ood_max_max_cls_attn_list) / len(p_ood_max_max_cls_attn_list) * patch_attention_factor)
+
+
 def parse_args():
     """
     parse_args retrieves the arguments from the command line and parses them into the arguments dotdict.
@@ -363,6 +532,7 @@ def parse_args():
     parser.add_argument('--print-perturbation-path', action='store_true', help='toggels printing the ood perturbation path')
     parser.add_argument('--print-specific-id-label', action='store_true', help='toggels printing specific id label mode')
     parser.add_argument('--specific-label', type=str, help='str - string representation of a label that should be found in the ID dataset and its attention be printed')
+    parser.add_argument('--print-attention-values', action='store_true', help='toggels printing attention value statistics')
 
     parser.add_argument('--albumentation', action='store_true', help='use albumentation as data aug')
     parser.add_argument('--contrastive', action='store_true', help='using distributed loss calculations across multiple GPUs')
